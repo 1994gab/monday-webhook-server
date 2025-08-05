@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const MONDAY_API_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjU0NTY0MDA1OCwiYWFpIjoxMSwidWlkIjo3OTE0NzY4MiwiaWFkIjoiMjAyNS0wOC0wMVQwNjoyMjoyNC44NThaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MjM2Nzc1NDMsInJnbiI6ImV1YzEifQ.mIs-ZNhqItctvh67V_tkbhVdrwZpkByb0YsGObrlifs';
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+const SLACK_WEBHOOK_URL ="https://hooks.slack.com/services/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";
 
 app.use(express.json());
 
@@ -15,30 +15,36 @@ let processing = false;
 // Funcție pentru trimitere mesaj către Slack
 async function sendToSlack(message) {
   try {
-    await fetch(SLACK_WEBHOOK_URL, {
+    const res = await fetch(SLACK_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: message })
+      body: JSON.stringify({ text: message }),
     });
+    if (!res.ok) {
+      console.error('Slack responded with error:', await res.text());
+    } else {
+      console.log('Mesaj trimis cu succes către Slack');
+    }
   } catch (err) {
     console.error('Eroare la trimiterea către Slack:', err.message);
   }
 }
 
-
-
 async function sendLeadToExternalApi(lead) {
   try {
     // Simulăm delay și trimitere
     await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('After sending to external API');
 
     // Simulăm succes
     await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Felx.`);
+    console.log('After sending to Slack');
   } catch (error) {
     console.error(`Eroare la trimiterea leadului ${lead.id}:`, error.message);
     await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): ${error.message}`);
   }
 }
+
 
 // Procesare coadă leaduri
 async function processQueue() {
@@ -50,7 +56,6 @@ async function processQueue() {
     try {
       await sendLeadToExternalApi(lead);
       console.log(`Lead ${lead.id} trimis cu succes!`);
-      // Aici poți adăuga logare pe Slack, etc.
     } catch (err) {
       console.error(`Eroare la trimiterea leadului ${lead.id}:`, err.message);
     }
@@ -61,7 +66,6 @@ async function processQueue() {
 function addLeadToQueue(lead) {
   queue.push(lead);
   processQueue();
-  console.log("s a trimis leaduri")
 }
 
 
@@ -98,6 +102,7 @@ app.post('/monday-webhook', async (req, res) => {
       body: JSON.stringify(query)
     });
     const data = await response.json();
+    console.log("✅ Răspuns complet Monday:", JSON.stringify(data, null, 2));
     if (data.errors) {
       console.error('API Errors:', data.errors);
       return res.status(500).send('API Error');
@@ -106,9 +111,9 @@ app.post('/monday-webhook', async (req, res) => {
     if (data.data && data.data.items && data.data.items[0]) {
       const item = data.data.items[0];
       const columns = item.column_values;
-      
       const nume = item.name;
       const telefon = columns.find(col => col.id === 'phone_1__1')?.text;
+
 
     addLeadToQueue({
     id: itemId,
