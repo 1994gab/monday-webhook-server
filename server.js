@@ -5,25 +5,75 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const MONDAY_API_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjU0NTY0MDA1OCwiYWFpIjoxMSwidWlkIjo3OTE0NzY4MiwiaWFkIjoiMjAyNS0wOC0wMVQwNjoyMjoyNC44NThaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MjM2Nzc1NDMsInJnbiI6ImV1YzEifQ.mIs-ZNhqItctvh67V_tkbhVdrwZpkByb0YsGObrlifs';
+const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
 
 app.use(express.json());
 
+const queue = [];
+let processing = false;
+
+// Funcție pentru trimitere mesaj către Slack
+async function sendToSlack(message) {
+  try {
+    await fetch(SLACK_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: message })
+    });
+  } catch (err) {
+    console.error('Eroare la trimiterea către Slack:', err.message);
+  }
+}
+
+
+
+async function sendLeadToExternalApi(lead) {
+  try {
+    // Simulăm delay și trimitere
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Simulăm succes
+    await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Felx.`);
+  } catch (error) {
+    console.error(`Eroare la trimiterea leadului ${lead.id}:`, error.message);
+    await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): ${error.message}`);
+  }
+}
+
+// Procesare coadă leaduri
+async function processQueue() {
+  if (processing) return;
+  processing = true;
+
+  while (queue.length > 0) {
+    const lead = queue.shift();
+    try {
+      await sendLeadToExternalApi(lead);
+      console.log(`Lead ${lead.id} trimis cu succes!`);
+      // Aici poți adăuga logare pe Slack, etc.
+    } catch (err) {
+      console.error(`Eroare la trimiterea leadului ${lead.id}:`, err.message);
+    }
+  }
+  processing = false;
+}
+
+function addLeadToQueue(lead) {
+  queue.push(lead);
+  processQueue();
+  console.log("s a trimis leaduri")
+}
+
+
 app.post('/monday-webhook', async (req, res) => {
   const body = req.body;
-  
-  // Challenge verification
+
   if (body.challenge) {
-    console.log('Challenge received:', body.challenge);
     return res.json({ challenge: body.challenge });
   }
-
-  console.log('Webhook received:', JSON.stringify(body, null, 2));
-  
   try {
     // Extract item ID
     const itemId = body.event.pulseId;
-    console.log('Item ID:', itemId);
-    
     // Monday API query
     const query = {
       query: `
@@ -39,8 +89,6 @@ app.post('/monday-webhook', async (req, res) => {
       `
     };
     
-    console.log('Calling Monday API...');
-    
     const response = await fetch('https://api.monday.com/v2', {
       method: 'POST',
       headers: {
@@ -49,10 +97,7 @@ app.post('/monday-webhook', async (req, res) => {
       },
       body: JSON.stringify(query)
     });
-    
     const data = await response.json();
-    console.log('Monday API Response:', JSON.stringify(data, null, 2));
-    
     if (data.errors) {
       console.error('API Errors:', data.errors);
       return res.status(500).send('API Error');
@@ -62,12 +107,17 @@ app.post('/monday-webhook', async (req, res) => {
       const item = data.data.items[0];
       const columns = item.column_values;
       
-      // Extract nume si telefon
       const nume = item.name;
       const telefon = columns.find(col => col.id === 'phone_1__1')?.text;
-      
-      console.log(`Nume: ${nume}, Telefon: ${telefon}`);
+
+    addLeadToQueue({
+    id: itemId,
+    name: nume,
+    phone: telefon,
+    })
     }
+
+
     
     res.status(200).send('Webhook processed successfully');
     
