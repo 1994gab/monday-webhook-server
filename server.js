@@ -13,6 +13,7 @@ app.use(express.json());
 const queue = [];
 let processing = false;
 
+
 // Funcție pentru trimitere mesaj către Slack
 async function sendToSlack(message) {
   try {
@@ -35,7 +36,7 @@ async function sendLeadToExternalApi(lead) {
   try {
     // Simulăm delay și trimitere
     await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('After sending to external API');
+    console.log('After sending to API');
 
     // Simulăm succes
     await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Felx.`);
