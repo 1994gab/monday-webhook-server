@@ -4,8 +4,8 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const MONDAY_API_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjU0NTY0MDA1OCwiYWFpIjoxMSwidWlkIjo3OTE0NzY4MiwiaWFkIjoiMjAyNS0wOC0wMVQwNjoyMjoyNC44NThaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MjM2Nzc1NDMsInJnbiI6ImV1YzEifQ.mIs-ZNhqItctvh67V_tkbhVdrwZpkByb0YsGObrlifs';
-const SLACK_WEBHOOK_URL ="https://hooks.slack.com/services/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"
+const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN;
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
 
 app.use(express.json());
