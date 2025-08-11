@@ -12,6 +12,8 @@ app.use(express.json());
 
 const queue = [];
 let processing = false;
+let leadsSuccessCount = 0;
+let leadsFailCount = 0;
 // Funcție pentru trimitere mesaj către Slack
 async function sendToSlack(message) {
   try {
@@ -72,18 +74,22 @@ async function sendLeadToExternalApi(lead) {
     // Verifică dacă leadul a fost importat cu succes
     if (responseData.leadsImported === 1 && responseData.error === null) {
       console.log('✅ Lead sent to Mediatel successfully');
-      await sendToSlack(`✅ Lead trimis cu succes către Mediatel\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
+      leadsSuccessCount++;
+      await sendToSlack(`✅ Lead trimis cu succes către Mediatel (#${leadsSuccessCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
     } else if (responseData.leadsImported === 0 && responseData.error === null) {
       console.log('❌ Lead not imported - possible duplicate or validation issue');
-      await sendToSlack(`❌ Lead nu a fost importat (posibil duplicat)\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
+      leadsFailCount++;
+      await sendToSlack(`❌ Lead nu a fost importat (posibil duplicat) (#${leadsFailCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
     } else if (responseData.error !== null) {
       console.log('❌ Lead import failed with error');
-      await sendToSlack(`❌ Eroare la trimiterea leadului\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${responseData.error}`);
+      leadsFailCount++;
+      await sendToSlack(`❌ Eroare la trimiterea leadului (#${leadsFailCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${responseData.error}`);
     }
     
   } catch (error) {
     console.error(`Eroare la trimiterea leadului ${lead.id}:`, error.message);
-    await sendToSlack(`❌ Eroare la conectarea cu Mediatel\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${error.message}`);
+    leadsFailCount++;
+    await sendToSlack(`❌ Eroare la conectarea cu Mediatel (#${leadsFailCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${error.message}`);
   }
 }
 
