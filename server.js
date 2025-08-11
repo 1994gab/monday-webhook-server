@@ -50,6 +50,8 @@ async function sendLeadToExternalApi(lead) {
       }
     ];
 
+    console.log('📤 Payload trimis către Mediatel:', JSON.stringify(mediatetPayload, null, 2));
+
     // Send to Mediatel API
     const response = await fetch('http://185.120.145.202:84/api/import-leads/', {
       method: 'POST',
@@ -67,8 +69,17 @@ async function sendLeadToExternalApi(lead) {
       throw new Error(`Mediatel API error: ${response.status} - ${JSON.stringify(responseData)}`);
     }
 
-    console.log('✅ Lead sent to Mediatel successfully');
-    await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Mediatel.`);
+    // Verifică dacă leadul a fost importat cu succes
+    if (responseData.leadsImported === 1 && responseData.error === null) {
+      console.log('✅ Lead sent to Mediatel successfully');
+      await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Mediatel.`);
+    } else if (responseData.leadsImported === 0 && responseData.error === null) {
+      console.log('❌ Lead not imported - possible duplicate or validation issue');
+      await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): Lead nu a fost importat (posibil duplicat)`);
+    } else if (responseData.error !== null) {
+      console.log('❌ Lead import failed with error');
+      await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): ${responseData.error}`);
+    }
     
   } catch (error) {
     console.error(`Eroare la trimiterea leadului ${lead.id}:`, error.message);
