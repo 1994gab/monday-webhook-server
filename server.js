@@ -12,8 +12,6 @@ app.use(express.json());
 
 const queue = [];
 let processing = false;
-
-
 // Funcție pentru trimitere mesaj către Slack
 async function sendToSlack(message) {
   try {
@@ -34,13 +32,44 @@ async function sendToSlack(message) {
 
 async function sendLeadToExternalApi(lead) {
   try {
-    // Simulăm delay și trimitere
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('After sending to API');
+    // Prepare Mediatel API payload
+    const mediatetPayload = [
+      {
+        "campaign": "Solicitari_Leaduri",
+        "data": {
+          "Name": lead.name,
+          "Sursa": "Fidem"
+        },
+        "id": lead.id,
+        "phones": [
+          {
+            "phoneNo": lead.phone,
+            "phoneType": "main phone"
+          }
+        ]
+      }
+    ];
 
-    // Simulăm succes
-    await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Felx.`);
-    console.log('After sending to Slack');
+    // Send to Mediatel API
+    const response = await fetch('http://185.120.145.202:84/api/import-leads/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer bWVkaWF0ZWw6dHExNmx2NmVpbjZl'
+      },
+      body: JSON.stringify(mediatetPayload)
+    });
+
+    const responseData = await response.json();
+    console.log('📤 Mediatel API Response:', JSON.stringify(responseData, null, 2));
+
+    if (!response.ok) {
+      throw new Error(`Mediatel API error: ${response.status} - ${JSON.stringify(responseData)}`);
+    }
+
+    console.log('✅ Lead sent to Mediatel successfully');
+    await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Mediatel.`);
+    
   } catch (error) {
     console.error(`Eroare la trimiterea leadului ${lead.id}:`, error.message);
     await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): ${error.message}`);
