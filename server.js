@@ -72,18 +72,18 @@ async function sendLeadToExternalApi(lead) {
     // Verifică dacă leadul a fost importat cu succes
     if (responseData.leadsImported === 1 && responseData.error === null) {
       console.log('✅ Lead sent to Mediatel successfully');
-      await sendToSlack(`✅ Lead *${lead.name}* (${lead.phone}) a fost trimis cu succes către Mediatel.`);
+      await sendToSlack(`✅ Lead trimis cu succes către Mediatel\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
     } else if (responseData.leadsImported === 0 && responseData.error === null) {
       console.log('❌ Lead not imported - possible duplicate or validation issue');
-      await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): Lead nu a fost importat (posibil duplicat)`);
+      await sendToSlack(`❌ Lead nu a fost importat (posibil duplicat)\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
     } else if (responseData.error !== null) {
       console.log('❌ Lead import failed with error');
-      await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): ${responseData.error}`);
+      await sendToSlack(`❌ Eroare la trimiterea leadului\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${responseData.error}`);
     }
     
   } catch (error) {
     console.error(`Eroare la trimiterea leadului ${lead.id}:`, error.message);
-    await sendToSlack(`❌ Eroare la trimiterea leadului *${lead.name}* (${lead.phone}): ${error.message}`);
+    await sendToSlack(`❌ Eroare la conectarea cu Mediatel\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${error.message}`);
   }
 }
 
