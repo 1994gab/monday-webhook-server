@@ -35,7 +35,7 @@ async function sendLeadToExternalApi(lead) {
     // Prepare Mediatel API payload
     const mediatetPayload = [
       {
-        "campaign": "Solicitari_Leaduri",
+        "campaign": "Solicitari_Creditare_Online_TEST",
         "data": {
           "Name": lead.name,
           "Sursa": "Fidem"
