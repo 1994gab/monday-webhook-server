@@ -117,12 +117,34 @@ function addLeadToQueue(lead) {
 }
 
 
+// Endpoint de test pentru verificare server
+app.get('/health', (req, res) => {
+  const status = {
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    webhooksProcessed: {
+      success: leadsSuccessCount,
+      failed: leadsFailCount,
+      inQueue: queue.length
+    }
+  };
+  console.log('🏥 Health check accesat:', status);
+  res.json(status);
+});
+
 app.post('/monday-webhook', async (req, res) => {
+  console.log('🔔 WEBHOOK PRIMIT DE LA MONDAY! Timestamp:', new Date().toISOString());
+  console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
+  
   const body = req.body;
 
   if (body.challenge) {
+    console.log('🤝 Challenge Monday primit:', body.challenge);
     return res.json({ challenge: body.challenge });
   }
+  
+  console.log('✅ Procesez webhook real (nu challenge)...');
   try {
     // Extract item ID
     const itemId = body.event.pulseId;
@@ -181,5 +203,9 @@ app.post('/monday-webhook', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log('====================================');
+  console.log(`🚀 Server PORNIT pe port ${PORT}`);
+  console.log(`📅 Data/Ora: ${new Date().toISOString()}`);
+  console.log(`🌐 Aștept webhook-uri la endpoint: /monday-webhook`);
+  console.log('====================================');
 });
