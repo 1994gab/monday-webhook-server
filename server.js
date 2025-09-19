@@ -14,6 +14,39 @@ const queue = [];
 let processing = false;
 let leadsSuccessCount = 0;
 let leadsFailCount = 0;
+
+function normalizePhoneNumber(phone) {
+  if (!phone) return null;
+
+  // Elimină toate caracterele non-numerice
+  let cleaned = phone.replace(/\D/g, '');
+
+  // Elimină prefixul de țară +40 dacă există
+  if (cleaned.startsWith('40')) {
+    cleaned = cleaned.substring(2);
+  } else if (cleaned.startsWith('0040')) {
+    cleaned = cleaned.substring(4);
+  }
+
+  // Dacă nu începe cu 0 și are 9 cifre (7XXXXXXXX), adaugă 0
+  if (!cleaned.startsWith('0') && cleaned.length === 9 && cleaned.startsWith('7')) {
+    cleaned = '0' + cleaned;
+  }
+
+  // Validare: trebuie să fie 07XXXXXXXX sau 02XXXXXXXX (numere românești)
+  if (cleaned.length !== 10) {
+    console.log(`   ❌ Număr invalid (lungime ${cleaned.length}): ${phone} → ${cleaned}`);
+    return null;
+  }
+
+  if (!cleaned.startsWith('07') && !cleaned.startsWith('02') && !cleaned.startsWith('03')) {
+    console.log(`   ❌ Nu e număr românesc: ${phone} → ${cleaned}`);
+    return null;
+  }
+
+  console.log(`   📞 Normalizare telefon: ${phone} → ${cleaned}`);
+  return cleaned;
+}
 // Funcție pentru trimitere mesaj către Slack
 async function sendToSlack(message) {
   try {
@@ -75,21 +108,33 @@ async function sendLeadToExternalApi(lead) {
     if (responseData.leadsImported === 1 && responseData.error === null) {
       console.log('✅ Lead sent to Mediatel successfully');
       leadsSuccessCount++;
-      await sendToSlack(`✅ Lead trimis cu succes către Mediatel (#${leadsSuccessCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
+      const phoneInfo = lead.originalPhone !== lead.phone
+        ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
+        : `\nTelefon: *${lead.phone}*`;
+      await sendToSlack(`✅ Lead trimis cu succes către Mediatel (#${leadsSuccessCount})\nNume: *${lead.name}*${phoneInfo}`);
     } else if (responseData.leadsImported === 0 && responseData.error === null) {
       console.log('❌ Lead not imported - possible duplicate or validation issue');
       leadsFailCount++;
-      await sendToSlack(`❌ Lead nu a fost importat (posibil duplicat) (#${leadsFailCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*`);
+      const phoneInfo = lead.originalPhone !== lead.phone
+        ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
+        : `\nTelefon: *${lead.phone}*`;
+      await sendToSlack(`❌ Lead nu a fost importat (posibil duplicat) (#${leadsFailCount})\nNume: *${lead.name}*${phoneInfo}`);
     } else if (responseData.error !== null) {
       console.log('❌ Lead import failed with error');
       leadsFailCount++;
-      await sendToSlack(`❌ Eroare la trimiterea leadului (#${leadsFailCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${responseData.error}`);
+      const phoneInfo = lead.originalPhone !== lead.phone
+        ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
+        : `\nTelefon: *${lead.phone}*`;
+      await sendToSlack(`❌ Eroare la trimiterea leadului (#${leadsFailCount})\nNume: *${lead.name}*${phoneInfo}\nEroare: ${responseData.error}`);
     }
     
   } catch (error) {
     console.error(`Eroare la trimiterea leadului ${lead.id}:`, error.message);
     leadsFailCount++;
-    await sendToSlack(`❌ Eroare la conectarea cu Mediatel (#${leadsFailCount})\nNume: *${lead.name}*\nTelefon: *${lead.phone}*\nEroare: ${error.message}`);
+    const phoneInfo = lead.originalPhone !== lead.phone
+      ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
+      : `\nTelefon: *${lead.phone}*`;
+    await sendToSlack(`❌ Eroare la conectarea cu Mediatel (#${leadsFailCount})\nNume: *${lead.name}*${phoneInfo}\nEroare: ${error.message}`);
   }
 }
 
@@ -182,14 +227,21 @@ app.post('/monday-webhook', async (req, res) => {
       const item = data.data.items[0];
       const columns = item.column_values;
       const nume = item.name;
-      const telefon = columns.find(col => col.id === 'phone_1__1')?.text;
+      const telefonOriginal = columns.find(col => col.id === 'phone_1__1')?.text;
+      const telefon = normalizePhoneNumber(telefonOriginal);
 
+      if (!telefon) {
+        console.log(`⚠️ Număr de telefon invalid pentru ${nume}: ${telefonOriginal}`);
+        await sendToSlack(`⚠️ Lead respins - număr de telefon invalid\nNume: *${nume}*\nTelefon primit: *${telefonOriginal}*`);
+        return res.status(200).send('Invalid phone number - skipped');
+      }
 
-    addLeadToQueue({
-    id: itemId,
-    name: nume,
-    phone: telefon,
-    })
+      addLeadToQueue({
+        id: itemId,
+        name: nume,
+        phone: telefon,
+        originalPhone: telefonOriginal
+      })
     }
 
 
