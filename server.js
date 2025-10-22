@@ -227,7 +227,7 @@ app.post('/monday-webhook', async (req, res) => {
       const item = data.data.items[0];
       const columns = item.column_values;
       const nume = item.name;
-      const telefonOriginal = columns.find(col => col.id === 'phone_1__1')?.text;
+      const telefonOriginal = columns.find(col => col.id === 'phone')?.text;
       const telefon = normalizePhoneNumber(telefonOriginal);
 
       if (!telefon) {
