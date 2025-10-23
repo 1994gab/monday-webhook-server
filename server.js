@@ -7,6 +7,11 @@ const PORT = process.env.PORT || 3000;
 const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN;
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
+// Configurare mapare Board ID -> Column ID pentru telefon
+const BOARD_CONFIG = {
+  '5056951158': { phoneColumnId: 'phone', boardName: 'IFN' },
+  '2077716319': { phoneColumnId: 'phone_1__1', boardName: 'FLEX' }
+};
 
 app.use(express.json());
 
@@ -111,21 +116,24 @@ async function sendLeadToExternalApi(lead) {
       const phoneInfo = lead.originalPhone !== lead.phone
         ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
         : `\nTelefon: *${lead.phone}*`;
-      await sendToSlack(`✅ Lead trimis cu succes către Mediatel (#${leadsSuccessCount})\nNume: *${lead.name}*${phoneInfo}`);
+      const boardInfo = lead.boardName ? `\n📋 Board: *${lead.boardName}*` : '';
+      await sendToSlack(`✅ Lead trimis cu succes către Mediatel (#${leadsSuccessCount})${boardInfo}\nNume: *${lead.name}*${phoneInfo}`);
     } else if (responseData.leadsImported === 0 && responseData.error === null) {
       console.log('❌ Lead not imported - possible duplicate or validation issue');
       leadsFailCount++;
       const phoneInfo = lead.originalPhone !== lead.phone
         ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
         : `\nTelefon: *${lead.phone}*`;
-      await sendToSlack(`❌ Lead nu a fost importat (posibil duplicat) (#${leadsFailCount})\nNume: *${lead.name}*${phoneInfo}`);
+      const boardInfo = lead.boardName ? `\n📋 Board: *${lead.boardName}*` : '';
+      await sendToSlack(`❌ Lead nu a fost importat (posibil duplicat) (#${leadsFailCount})${boardInfo}\nNume: *${lead.name}*${phoneInfo}`);
     } else if (responseData.error !== null) {
       console.log('❌ Lead import failed with error');
       leadsFailCount++;
       const phoneInfo = lead.originalPhone !== lead.phone
         ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
         : `\nTelefon: *${lead.phone}*`;
-      await sendToSlack(`❌ Eroare la trimiterea leadului (#${leadsFailCount})\nNume: *${lead.name}*${phoneInfo}\nEroare: ${responseData.error}`);
+      const boardInfo = lead.boardName ? `\n📋 Board: *${lead.boardName}*` : '';
+      await sendToSlack(`❌ Eroare la trimiterea leadului (#${leadsFailCount})${boardInfo}\nNume: *${lead.name}*${phoneInfo}\nEroare: ${responseData.error}`);
     }
     
   } catch (error) {
@@ -134,7 +142,8 @@ async function sendLeadToExternalApi(lead) {
     const phoneInfo = lead.originalPhone !== lead.phone
       ? `\n📱 Telefon Monday: *${lead.originalPhone}*\n✅ Telefon trimis: *${lead.phone}*`
       : `\nTelefon: *${lead.phone}*`;
-    await sendToSlack(`❌ Eroare la conectarea cu Mediatel (#${leadsFailCount})\nNume: *${lead.name}*${phoneInfo}\nEroare: ${error.message}`);
+    const boardInfo = lead.boardName ? `\n📋 Board: *${lead.boardName}*` : '';
+    await sendToSlack(`❌ Eroare la conectarea cu Mediatel (#${leadsFailCount})${boardInfo}\nNume: *${lead.name}*${phoneInfo}\nEroare: ${error.message}`);
   }
 }
 
@@ -191,8 +200,21 @@ app.post('/monday-webhook', async (req, res) => {
   
   console.log('✅ Procesez webhook real (nu challenge)...');
   try {
-    // Extract item ID
+    // Extract item ID and board ID
     const itemId = body.event.pulseId;
+    const boardId = body.event.boardId?.toString();
+
+    console.log(`📋 Board ID: ${boardId}, Item ID: ${itemId}`);
+
+    // Verifică dacă board-ul este configurat
+    const boardConfig = BOARD_CONFIG[boardId];
+    if (!boardConfig) {
+      console.log(`⚠️ Board ${boardId} nu este configurat în BOARD_CONFIG`);
+      await sendToSlack(`⚠️ Webhook primit de la board neconfigurat: ${boardId}`);
+      return res.status(200).send('Board not configured - skipped');
+    }
+
+    console.log(`✅ Board găsit: ${boardConfig.boardName}, Column ID telefon: ${boardConfig.phoneColumnId}`);
     // Monday API query
     const query = {
       query: `
@@ -227,12 +249,12 @@ app.post('/monday-webhook', async (req, res) => {
       const item = data.data.items[0];
       const columns = item.column_values;
       const nume = item.name;
-      const telefonOriginal = columns.find(col => col.id === 'phone')?.text;
+      const telefonOriginal = columns.find(col => col.id === boardConfig.phoneColumnId)?.text;
       const telefon = normalizePhoneNumber(telefonOriginal);
 
       if (!telefon) {
         console.log(`⚠️ Număr de telefon invalid pentru ${nume}: ${telefonOriginal}`);
-        await sendToSlack(`⚠️ Lead respins - număr de telefon invalid\nNume: *${nume}*\nTelefon primit: *${telefonOriginal}*`);
+        await sendToSlack(`⚠️ Lead respins - număr de telefon invalid\n📋 Board: *${boardConfig.boardName}*\nNume: *${nume}*\nTelefon primit: *${telefonOriginal}*`);
         return res.status(200).send('Invalid phone number - skipped');
       }
 
@@ -240,7 +262,8 @@ app.post('/monday-webhook', async (req, res) => {
         id: itemId,
         name: nume,
         phone: telefon,
-        originalPhone: telefonOriginal
+        originalPhone: telefonOriginal,
+        boardName: boardConfig.boardName
       })
     }
 
