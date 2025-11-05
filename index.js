@@ -41,6 +41,7 @@ app.listen(PORT, () => {
   console.log(`📅 Data/Ora: ${new Date().toISOString()}`);
   console.log(`🌐 Webhook-uri disponibile:`);
   console.log(`   - POST /webhook/monday/flex`);
+  console.log(`   - POST /webhook/monday/credius`);
   console.log(`   - GET  /health`);
   console.log('====================================');
 });
