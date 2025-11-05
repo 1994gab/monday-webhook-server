@@ -87,42 +87,17 @@ async function sendLead(name, phone) {
     leadcnp: null
   };
 
-  console.log(`\n📤 [CREDIUS] Trimit lead: ${name} - ${normalizedPhone} (original: ${phone})`);
-
-  // Timing pentru diagnostic
-  const timings = {
-    start: Date.now(),
-    firstByte: null
-  };
-
   try {
-    console.log(`   ⏱️ [TIMING] Request START la ${new Date().toISOString()}`);
-
-    // Folosim agent-ul GLOBAL din axios-config.js (maxSockets: 10 shared cu toate request-urile)
     const response = await axios.post(CREDIUS_CONFIG.URL, payload, {
       headers: {
         'Content-Type': 'application/json'
       },
       timeout: CREDIUS_CONFIG.TIMEOUT,
-      httpsAgent: httpsAgent,  // Agent GLOBAL din axios-config (maxSockets: 10 shared)
-      onDownloadProgress: (progressEvent) => {
-        if (!timings.firstByte) {
-          timings.firstByte = Date.now();
-          console.log(`   📥 [TIMING] First byte: ${timings.firstByte - timings.start}ms`);
-        }
-      }
+      httpsAgent: httpsAgent
     });
 
     const result = response.data;
 
-    // Timing final
-    const totalTime = Date.now() - timings.start;
-    console.log(`   ✅ [TIMING] TOTAL: ${totalTime}ms`);
-    if (timings.firstByte) {
-      console.log(`   📊 [TIMING] First byte: ${timings.firstByte - timings.start}ms`);
-    }
-
-    // Verifică dacă result există
     if (!result) {
       return {
         success: false,
@@ -132,14 +107,12 @@ async function sendLead(name, phone) {
       };
     }
 
-    // Suport pentru ambele formate de răspuns
     const mesaj = result.Mesaj || result.message;
     const leadId = result.Id || result.lead_id;
     const isActuallySuccess = mesaj === "OK" && leadId > 0;
     const isDuplicate = mesaj === "Lead Existent";
 
     if (isActuallySuccess) {
-      console.log(`   ✅ Lead trimis cu succes! ID: ${leadId}`);
       return {
         success: true,
         leadId: leadId,
@@ -147,7 +120,6 @@ async function sendLead(name, phone) {
         rawResponse: mesaj
       };
     } else if (isDuplicate) {
-      console.log(`   ⚠️ Lead duplicat - existent în sistem`);
       return {
         success: false,
         leadId: 0,
@@ -164,16 +136,8 @@ async function sendLead(name, phone) {
     }
 
   } catch (error) {
-    const totalTime = Date.now() - timings.start;
+    console.log(error);
 
-    console.error(`\n   ❌ [CREDIUS] Eroare: ${error.message}`);
-    console.error(`   ⏱️ [TIMING] FAILED după ${totalTime}ms`);
-    console.error(`   🔍 [DIAGNOSIS] Error code: ${error.code}`);
-    if (error.code === 'ECONNABORTED') {
-      console.error(`   💡 [TIP] Timeout exceeded - Credius server nu răspunde sau e overloaded`);
-    }
-
-    // Return RAW error
     return {
       success: false,
       leadId: 0,
