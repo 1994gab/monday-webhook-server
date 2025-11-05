@@ -5,6 +5,7 @@ const router = express.Router();
 const flexController = require('../controllers/partners/flex.controller');
 const crediusController = require('../controllers/partners/credius.controller');
 const creditfixController = require('../controllers/partners/creditfix.controller');
+const icreditController = require('../controllers/partners/icredit.controller');
 
 /**
  * RUTE WEBHOOK-URI PARTENERI
@@ -20,7 +21,7 @@ router.post('/credius', crediusController.handleCrediusWebhook);
 // ===== CREDITFIX =====
 router.post('/creditfix', creditfixController.handleCreditFixWebhook);
 
-// ===== ICREDIT (viitor) =====
-// router.post('/icredit', icreditController.handleIcreditWebhook);
+// ===== ICREDIT =====
+router.post('/icredit', icreditController.handleIcreditWebhook);
 
 module.exports = router;
