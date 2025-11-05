@@ -42,6 +42,7 @@ app.listen(PORT, () => {
   console.log(`🌐 Webhook-uri disponibile:`);
   console.log(`   - POST /webhook/monday/flex`);
   console.log(`   - POST /webhook/monday/credius`);
+  console.log(`   - POST /webhook/monday/creditfix`);
   console.log(`   - GET  /health`);
   console.log('====================================');
 });

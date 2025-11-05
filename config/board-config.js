@@ -20,9 +20,10 @@ const BOARD_CONFIG = {
   '5056951158': {
     boardName: 'IFN',
     columns: {
-      phone: 'phone',        // Column ID pentru telefon în IFN
-      email: 'email',        // Pentru CreditFix (viitor)
-      cnp: 'cnp'             // Pentru CreditFix (viitor)
+      phone: 'phone',              // Column ID pentru telefon
+      email: 'email',              // Column ID pentru email
+      cnp: 'cnp',                  // Column ID pentru CNP
+      cashingMethod: 'dropdown__1' // Column ID pentru metodă încasare (Cash/Card)
     }
   }
 };
