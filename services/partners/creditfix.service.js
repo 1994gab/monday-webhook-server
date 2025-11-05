@@ -124,8 +124,8 @@ async function sendLead(leadData) {
       };
     }
 
-    // Duplicate lead
-    if (status === 'previously transmitted client') {
+    // Duplicate lead (verifică în status SAU message)
+    if (status === 'previously transmitted client' || message === 'previously transmitted client') {
       console.log(`   🔄 Lead duplicat în CreditFix`);
       return {
         success: false,
