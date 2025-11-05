@@ -47,9 +47,6 @@ async function sendLead(leadData) {
       }
     ];
 
-    console.log(`📤 [FLEX] Trimit lead: ${leadData.name} - ${leadData.phone}`);
-    console.log(`   Payload:`, JSON.stringify(mediatetPayload, null, 2));
-
     // Send to Mediatel API
     const response = await fetch(MEDIATEL_CONFIG.API_URL, {
       method: 'POST',
@@ -63,7 +60,9 @@ async function sendLead(leadData) {
     });
 
     const responseData = await response.json();
-    console.log(`   Response:`, JSON.stringify(responseData, null, 2));
+
+    // Raw response pentru succes
+    console.log('[FLEX] Raw Response Success:', responseData);
 
     if (!response.ok) {
       throw new Error(`Mediatel API error: ${response.status} - ${JSON.stringify(responseData)}`);
@@ -71,21 +70,18 @@ async function sendLead(leadData) {
 
     // Analizare răspuns Mediatel
     if (responseData.leadsImported === 1 && responseData.error === null) {
-      console.log('   ✅ Lead trimis cu succes la Mediatel');
       return {
         success: true,
         message: 'Lead importat cu succes',
         data: responseData
       };
     } else if (responseData.leadsImported === 0 && responseData.error === null) {
-      console.log('   ⚠️ Lead nu a fost importat (posibil duplicat)');
       return {
         success: false,
         message: 'Lead duplicat sau validare eșuată',
         data: responseData
       };
     } else if (responseData.error !== null) {
-      console.log('   ❌ Eroare de la Mediatel');
       return {
         success: false,
         message: responseData.error,
@@ -100,7 +96,7 @@ async function sendLead(leadData) {
     }
 
   } catch (error) {
-    console.error(`   ❌ [FLEX] Eroare: ${error.message}`);
+    console.log('[FLEX] Raw Response Error:', error);
 
     // Timeout
     if (error.code === 'ECONNABORTED' || error.type === 'request-timeout') {

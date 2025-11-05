@@ -107,11 +107,6 @@ async function sendLead(leadData) {
     telephone: normalizedPhone  // 9 cifre, fără 0
   };
 
-  console.log(`\n📤 [ICREDIT] Trimit lead:`);
-  console.log(`   Nume: ${leadData.name}`);
-  console.log(`   Telefon original: ${leadData.phone}`);
-  console.log(`   Telefon normalizat: ${normalizedPhone} (9 cifre)`);
-
   try {
     // Trimite la iCredit API cu X-Auth-Token header
     const response = await axios.post(
@@ -129,10 +124,12 @@ async function sendLead(leadData) {
 
     const result = response.data;
 
+    // Raw response pentru succes
+    console.log('[ICREDIT] Raw Response Success:', result);
+
     // Success - Lead created
     if (result.success === true || result.payload?.ID) {
       const leadId = result.payload?.ID || result.id || 'unknown';
-      console.log(`   ✅ Lead trimis cu succes! ID: ${leadId}`);
       return {
         success: true,
         id: leadId,
@@ -150,7 +147,7 @@ async function sendLead(leadData) {
     };
 
   } catch (error) {
-    console.error(`\n   ❌ [ICREDIT] Eroare: ${error.message}`);
+    console.log('[ICREDIT] Raw Response Error:', error);
 
     // Auth error (401/403)
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {

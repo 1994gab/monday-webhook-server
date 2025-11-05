@@ -99,7 +99,7 @@ async function sendLead(name, phone) {
     const result = response.data;
 
     // Raw response pentru succes
-    console.log(result);
+    console.log('[CREDIUS] Raw Response Success:', result);
 
     if (!result) {
       return {
@@ -139,7 +139,7 @@ async function sendLead(name, phone) {
     }
 
   } catch (error) {
-    console.log(error);
+    console.log('[CREDIUS] Raw Response Error:', error);
 
     return {
       success: false,

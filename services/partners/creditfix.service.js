@@ -96,6 +96,9 @@ async function sendLead(leadData) {
 
     const result = response.data;
 
+    // Raw response pentru succes
+    console.log('[CREDITFIX] Raw Response Success:', result);
+
     // Procesare răspuns CreditFix
     const status = result.status;
     const uid = result.uid;
@@ -104,7 +107,6 @@ async function sendLead(leadData) {
 
     // Success - Lead created (verifică BOTH status și message)
     if (status === 'success' || message === 'success') {
-      console.log(`   ✅ Lead trimis cu succes! UID: ${uid}`);
       return {
         success: true,
         uid: uid,
@@ -115,7 +117,6 @@ async function sendLead(leadData) {
 
     // Existing client
     if (status === 'existing client') {
-      console.log(`   🔄 Client existent în CreditFix`);
       return {
         success: false,
         uid: uid,
@@ -126,7 +127,6 @@ async function sendLead(leadData) {
 
     // Duplicate lead (verifică în status SAU message)
     if (status === 'previously transmitted client' || message === 'previously transmitted client') {
-      console.log(`   🔄 Lead duplicat în CreditFix`);
       return {
         success: false,
         uid: uid,
@@ -137,7 +137,6 @@ async function sendLead(leadData) {
 
     // Validation errors
     if (errors && Array.isArray(errors) && errors.length > 0) {
-      console.log(`   ❌ Erori de validare: ${errors.join(', ')}`);
       return {
         success: false,
         uid: null,
@@ -157,7 +156,7 @@ async function sendLead(leadData) {
     };
 
   } catch (error) {
-    console.error(`\n   ❌ [CREDITFIX] Eroare: ${error.message}`);
+    console.log('[CREDITFIX] Raw Response Error:', error);
 
     // Authentication error (401/403)
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
