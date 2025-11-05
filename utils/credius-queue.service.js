@@ -4,7 +4,7 @@
  */
 
 // Configurare delay FIX între lead-uri (în secunde)
-const DELAY_SECONDS = 5;  // Fix 5 secunde între lead-uri
+const DELAY_SECONDS = 2;  // Fix 2 secunde între lead-uri (optimizat pentru viteză)
 
 // Starea cozii
 let queue = [];
