@@ -22,7 +22,7 @@ const BOARD_CONFIG = {
     columns: {
       phone: 'phone',              // Column ID pentru telefon
       email: 'email',              // Column ID pentru email
-      cnp: 'cnp',                  // Column ID pentru CNP
+      cnp: 'cnp__1',               // Column ID pentru CNP (CORECT!)
       cashingMethod: 'dropdown__1' // Column ID pentru metodă încasare (Cash/Card)
     }
   }
