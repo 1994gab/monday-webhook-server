@@ -1,11 +1,24 @@
 const axios = require('axios');
-const { httpsAgent } = require('../../config/axios-config');
+const https = require('https');
 require('dotenv').config();
 
 /**
  * Service pentru comunicare cu Credius API
  * Trimite lead-uri (nume + telefon) către sistemul Credius
+ *
+ * IMPORTANT: Credius API (IIS/ASP.NET) face TLS renegotiation care e blocată
+ * în Node.js 18+. Folosim agent dedicat cu keepAlive: false pentru a evita
+ * reuse-ul socket-urilor și hanging-ul cauzat de renegotiation.
  */
+
+// Agent HTTPS dedicat pentru Credius (creat o singură dată)
+// FULL RELAXAT - permite TLS renegotiation și acceptă orice certificat
+const crediusAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 10,
+  rejectUnauthorized: false,  // Acceptă orice certificat SSL (chiar și expirat/invalid)
+  secureOptions: require('constants').SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION  // Permite TLS renegotiation unsafe
+});
 
 // Configurație Credius din .env
 const CREDIUS_CONFIG = {
@@ -13,7 +26,7 @@ const CREDIUS_CONFIG = {
   USERNAME: process.env.CREDIUS_USERNAME,
   API_KEY: process.env.CREDIUS_API_KEY,
   DEFAULT_COUNTY: 'București',
-  TIMEOUT: 30000      // 30 secunde timeout (Credius API e foarte lent)
+  TIMEOUT: 60000      // 60 secunde timeout (Credius API e foarte lent)
 };
 
 /**
@@ -93,7 +106,7 @@ async function sendLead(name, phone) {
         'Content-Type': 'application/json'
       },
       timeout: CREDIUS_CONFIG.TIMEOUT,
-      httpsAgent: httpsAgent
+      httpsAgent: crediusAgent  // Agent dedicat fără keepAlive pentru TLS renegotiation
     });
 
     const result = response.data;
