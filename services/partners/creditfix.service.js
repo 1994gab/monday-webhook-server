@@ -102,8 +102,8 @@ async function sendLead(leadData) {
     const message = result.message;
     const errors = result.errors;
 
-    // Success - Lead created
-    if (status === 'success') {
+    // Success - Lead created (verifică BOTH status și message)
+    if (status === 'success' || message === 'success') {
       console.log(`   ✅ Lead trimis cu succes! UID: ${uid}`);
       return {
         success: true,
