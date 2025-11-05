@@ -1,15 +1,17 @@
 {
   "name": "monday-webhook-server",
   "version": "1.0.0",
-  "description": "Monday.com webhook server",
-  "main": "server.js",
+  "description": "Monday.com webhook server for partner integrations",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "dependencies": {
     "express": "^5.1.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "dotenv": "^16.0.0",
+    "axios": "^1.6.0"
   },
   "engines": {
     "node": ">=14"
