@@ -98,6 +98,9 @@ async function sendLead(name, phone) {
 
     const result = response.data;
 
+    // Raw response pentru succes
+    console.log(result);
+
     if (!result) {
       return {
         success: false,
