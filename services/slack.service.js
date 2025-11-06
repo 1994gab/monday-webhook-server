@@ -72,7 +72,7 @@ async function sendPartnerNotification(config) {
 
   try {
     const leadNum = `#${leadNumber || '1'}`;
-    const boardInfo = leadData.boardName ? `\n📋 Board: *${leadData.boardName}*` : '';
+    const boardInfo = leadData.boardName ? `\nBoard: *${leadData.boardName}*` : '';
 
     let message = '';
 
@@ -80,28 +80,28 @@ async function sendPartnerNotification(config) {
     if (status === 'success') {
       // ID-ul leadului din sistemul partener (poate fi id, uid, leadId)
       const partnerId = result.id || result.uid || result.leadId;
-      const partnerIdInfo = partnerId ? `\n🆔 ID ${partnerName}: *${partnerId}*` : '';
+      const partnerIdInfo = partnerId ? `\nID ${partnerName}: *${partnerId}*` : '';
 
       // Info telefon (arată diferența dacă există)
       let phoneInfo = '';
       if (leadData.phone) {
         if (leadData.originalPhone && leadData.originalPhone !== leadData.phone) {
-          phoneInfo = `\n📱 Telefon Monday: *${leadData.originalPhone}*\n📱 Telefon trimis: *${leadData.phone}*`;
+          phoneInfo = `\nTelefon Monday: *${leadData.originalPhone}*\nTelefon trimis: *${leadData.phone}*`;
         } else {
-          phoneInfo = `\n📱 Telefon: *${leadData.phone}*`;
+          phoneInfo = `\nTelefon: *${leadData.phone}*`;
         }
       }
 
       // Info suplimentare (email, CNP, etc.)
       let extraInfo = '';
-      if (leadData.email) extraInfo += `\n📧 Email: *${leadData.email}*`;
-      if (leadData.cnp) extraInfo += `\n🆔 CNP: *${leadData.cnp}*`;
-      if (leadData.employer) extraInfo += `\n🏢 Angajator: *${leadData.employer}*`;
-      if (leadData.income) extraInfo += `\n💰 Salariu: *${leadData.income} RON*`;
-      if (leadData.amount) extraInfo += `\n💵 Sumă dorită: *${leadData.amount} RON*`;
-      if (leadData.cashingMethod) extraInfo += `\n💳 Metodă: *${leadData.cashingMethod}*`;
+      if (leadData.email) extraInfo += `\nEmail: *${leadData.email}*`;
+      if (leadData.cnp) extraInfo += `\nCNP: *${leadData.cnp}*`;
+      if (leadData.employer) extraInfo += `\nAngajator: *${leadData.employer}*`;
+      if (leadData.income) extraInfo += `\nSalariu: *${leadData.income} RON*`;
+      if (leadData.amount) extraInfo += `\nSumă dorită: *${leadData.amount} RON*`;
+      if (leadData.cashingMethod) extraInfo += `\nMetodă: *${leadData.cashingMethod}*`;
 
-      message = `✅ *Lead trimis cu succes către ${partnerName}* (${leadNum})${boardInfo}\n👤 Nume: *${leadData.name}*${phoneInfo}${extraInfo}${partnerIdInfo}`;
+      message = `✅ *Lead trimis cu succes către ${partnerName}* (${leadNum})${boardInfo}\nNume: *${leadData.name}*${phoneInfo}${extraInfo}${partnerIdInfo}`;
     }
 
     // ===== DUPLICAT =====
@@ -109,29 +109,29 @@ async function sendPartnerNotification(config) {
       let phoneInfo = '';
       if (leadData.phone) {
         if (leadData.originalPhone && leadData.originalPhone !== leadData.phone) {
-          phoneInfo = `\n📱 Telefon Monday: *${leadData.originalPhone}*\n📱 Telefon trimis: *${leadData.phone}*`;
+          phoneInfo = `\nTelefon Monday: *${leadData.originalPhone}*\nTelefon trimis: *${leadData.phone}*`;
         } else {
-          phoneInfo = `\n📱 Telefon: *${leadData.phone}*`;
+          phoneInfo = `\nTelefon: *${leadData.phone}*`;
         }
       }
 
       let extraInfo = '';
-      if (leadData.email) extraInfo += `\n📧 Email: *${leadData.email}*`;
+      if (leadData.email) extraInfo += `\nEmail: *${leadData.email}*`;
 
       const reason = result.reason || result.message || 'Lead duplicat';
 
-      message = `🔄 *Lead duplicat în ${partnerName}* (${leadNum})${boardInfo}\n👤 Nume: *${leadData.name}*${phoneInfo}${extraInfo}\n💬 Motiv: ${reason}`;
+      message = `🔄 *Lead duplicat în ${partnerName}* (${leadNum})${boardInfo}\nNume: *${leadData.name}*${phoneInfo}${extraInfo}\nMotiv: ${reason}`;
     }
 
     // ===== DATE INVALIDE / INCOMPLETE =====
     else if (status === 'invalid_data') {
-      let dataInfo = `\n👤 Nume: *${leadData.name || 'LIPSĂ'}*`;
-      if (leadData.phone !== undefined) dataInfo += `\n📱 Telefon: *${leadData.phone || 'LIPSĂ'}*`;
-      if (leadData.email !== undefined) dataInfo += `\n📧 Email: *${leadData.email || 'LIPSĂ'}*`;
-      if (leadData.cnp !== undefined) dataInfo += `\n🆔 CNP: *${leadData.cnp || 'LIPSĂ'}*`;
-      if (leadData.employer !== undefined) dataInfo += `\n🏢 Angajator: *${leadData.employer || 'LIPSĂ'}*`;
-      if (leadData.income !== undefined) dataInfo += `\n💰 Salariu: *${leadData.income || 'LIPSĂ'}*`;
-      if (leadData.amount !== undefined) dataInfo += `\n💵 Sumă dorită: *${leadData.amount || 'LIPSĂ'}*`;
+      let dataInfo = `\nNume: *${leadData.name || 'LIPSĂ'}*`;
+      if (leadData.phone !== undefined) dataInfo += `\nTelefon: *${leadData.phone || 'LIPSĂ'}*`;
+      if (leadData.email !== undefined) dataInfo += `\nEmail: *${leadData.email || 'LIPSĂ'}*`;
+      if (leadData.cnp !== undefined) dataInfo += `\nCNP: *${leadData.cnp || 'LIPSĂ'}*`;
+      if (leadData.employer !== undefined) dataInfo += `\nAngajator: *${leadData.employer || 'LIPSĂ'}*`;
+      if (leadData.income !== undefined) dataInfo += `\nSalariu: *${leadData.income || 'LIPSĂ'}*`;
+      if (leadData.amount !== undefined) dataInfo += `\nSumă dorită: *${leadData.amount || 'LIPSĂ'}*`;
 
       // Erori de validare (dacă există)
       let errorDetails = '';
@@ -139,12 +139,12 @@ async function sendPartnerNotification(config) {
         const errorMessages = Object.entries(result.errors)
           .map(([field, messages]) => `  • ${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
           .join('\n');
-        errorDetails = `\n⚠️ Erori:\n${errorMessages}`;
+        errorDetails = `\nErori:\n${errorMessages}`;
       }
 
       const reason = result.message || 'Date invalide sau incomplete';
 
-      message = `⚠️ *Lead NU trimis - Date invalide* (${leadNum})${boardInfo}${dataInfo}\n💬 Motiv: ${reason}${errorDetails}`;
+      message = `⚠️ *Lead NU trimis - Date invalide* (${leadNum})${boardInfo}${dataInfo}\nMotiv: ${reason}${errorDetails}`;
     }
 
     // ===== EROARE =====
@@ -152,18 +152,18 @@ async function sendPartnerNotification(config) {
       let phoneInfo = '';
       if (leadData.phone) {
         if (leadData.originalPhone && leadData.originalPhone !== leadData.phone) {
-          phoneInfo = `\n📱 Telefon Monday: *${leadData.originalPhone}*\n📱 Telefon trimis: *${leadData.phone}*`;
+          phoneInfo = `\nTelefon Monday: *${leadData.originalPhone}*\nTelefon trimis: *${leadData.phone}*`;
         } else {
-          phoneInfo = `\n📱 Telefon: *${leadData.phone}*`;
+          phoneInfo = `\nTelefon: *${leadData.phone}*`;
         }
       }
 
       let extraInfo = '';
-      if (leadData.email) extraInfo += `\n📧 Email: *${leadData.email}*`;
+      if (leadData.email) extraInfo += `\nEmail: *${leadData.email}*`;
 
       const errorMessage = result.message || 'Eroare necunoscută';
 
-      message = `❌ *Lead respins de ${partnerName}* (${leadNum})${boardInfo}\n👤 Nume: *${leadData.name}*${phoneInfo}${extraInfo}\n💬 Eroare: ${errorMessage}`;
+      message = `❌ *Lead respins de ${partnerName}* (${leadNum})${boardInfo}\nNume: *${leadData.name}*${phoneInfo}${extraInfo}\nEroare: ${errorMessage}`;
     }
 
     // Trimite mesajul
@@ -179,7 +179,7 @@ async function sendPartnerNotification(config) {
  */
 async function sendWarning(webhookUrl, warningMessage) {
   if (!webhookUrl) return;
-  await sendToSlack(webhookUrl, `⚠️ ${warningMessage}`);
+  await sendToSlack(webhookUrl, warningMessage);
 }
 
 module.exports = {

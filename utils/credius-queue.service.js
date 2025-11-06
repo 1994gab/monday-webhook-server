@@ -71,9 +71,9 @@ async function startProcessing() {
     }
   }
 
-  // Reset pentru următorul batch
+  // Reset pentru următorul batch (păstrăm processedCount pentru numerotare globală)
   isProcessing = false;
-  processedCount = 0;
+  // processedCount NU se resetează - numerotare globală continuă
   failedCount = 0;
   startTime = null;
 }
