@@ -26,7 +26,7 @@ const CREDIUS_CONFIG = {
   USERNAME: process.env.CREDIUS_USERNAME,
   API_KEY: process.env.CREDIUS_API_KEY,
   DEFAULT_COUNTY: 'București',
-  TIMEOUT: 60000      // 60 secunde timeout (Credius API e foarte lent)
+  TIMEOUT: 120000     // 120 secunde timeout (prima conexiune după restart e foarte lentă din cauza TLS renegotiation)
 };
 
 /**
