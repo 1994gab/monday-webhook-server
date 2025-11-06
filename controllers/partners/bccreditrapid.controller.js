@@ -1,9 +1,8 @@
-const axios = require('axios');
 const { sendLead } = require('../../services/partners/bccreditrapid.service');
 const { addToQueue, setProcessHandler } = require('../../utils/bccreditrapid-queue.service');
 const { BOARD_CONFIG } = require('../../config/board-config');
 const { fetchItemDetails, extractColumnValue } = require('../../services/monday.service');
-const { httpsAgent } = require('../../config/axios-config');
+const { sendPartnerNotification } = require('../../services/slack.service');
 
 /**
  * Controller pentru BC Credit Rapid
@@ -12,66 +11,6 @@ const { httpsAgent } = require('../../config/axios-config');
 
 // Slack webhook pentru notificări
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_BCCREDITRAPID;
-
-/**
- * Trimite notificare pe Slack despre rezultatul trimiterii la BC Credit Rapid
- */
-async function sendSlackNotification(leadData, result) {
-  if (!SLACK_WEBHOOK) return;
-
-  try {
-    let mainText;
-    const leadNumber = `#${leadData.leadNumber || '1'}`;
-    const boardInfo = leadData.boardName ? `\nBoard: ${leadData.boardName}` : '';
-
-    // Success
-    if (result.success) {
-      mainText = `✅ Lead trimis cu succes către BC Credit Rapid (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Email: ${leadData.email}
-Telefon: ${leadData.phone}
-Angajator: ${leadData.employer}
-Salariu: ${leadData.income} RON
-Sumă dorită: ${leadData.amount} RON
-ID BC Credit Rapid: ${result.id}`;
-    }
-
-    // Skipped (duplicate)
-    else if (result.status === 'skipped') {
-      mainText = `🔄 Lead duplicat în BC Credit Rapid (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Email: ${leadData.email}
-Telefon: ${leadData.phone}
-Motiv: ${result.message}`;
-    }
-
-    // Invalid data
-    else if (result.status === 'invalid') {
-      const errors = result.errors || {};
-      const errorMessages = Object.entries(errors)
-        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-        .join('\n');
-
-      mainText = `❌ Lead respins de BC Credit Rapid (${leadNumber})${boardInfo}
-Nume: ${leadData.name || 'LIPSĂ'}
-Email: ${leadData.email || 'LIPSĂ'}
-Telefon: ${leadData.phone || 'LIPSĂ'}
-Erori:
-${errorMessages}`;
-    }
-
-    // Error
-    else {
-      mainText = `❌ Eroare trimitere către BC Credit Rapid (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Motiv: ${result.message}`;
-    }
-
-    await axios.post(SLACK_WEBHOOK, { text: mainText }, { httpsAgent });
-  } catch (error) {
-    console.error(`   ❌ Eroare Slack: ${error.message}`);
-  }
-}
 
 /**
  * Webhook handler pentru BC Credit Rapid
@@ -168,22 +107,35 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
       amount: parseInt(amount)
     });
 
+    // Determină status-ul pentru Slack
+    let slackStatus;
+    if (result.success && result.status === 'inserted') {
+      slackStatus = 'success';
+    } else if (result.status === 'skipped') {
+      slackStatus = 'duplicate';
+    } else if (result.status === 'invalid') {
+      slackStatus = 'invalid_data';
+    } else {
+      slackStatus = 'error';
+    }
+
     // Notificare Slack
-    await sendSlackNotification(
-      {
+    await sendPartnerNotification({
+      webhookUrl: SLACK_WEBHOOK,
+      partnerName: 'BC Credit Rapid',
+      status: slackStatus,
+      leadData: {
         name,
         email,
         phone,
         employer,
         income,
         amount,
-        boardName: boardConfig.boardName,
-        itemId,
-        leadNumber: currentNumber,
-        totalLeads: totalCount
+        boardName: boardConfig.boardName
       },
-      result
-    );
+      result,
+      leadNumber: currentNumber
+    });
 
   } catch (error) {
     console.error(`   ❌ Eroare procesare: ${error.message}`);

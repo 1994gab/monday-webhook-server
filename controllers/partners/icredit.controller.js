@@ -1,9 +1,8 @@
-const axios = require('axios');
 const { sendLead } = require('../../services/partners/icredit.service');
 const { addToQueue, setProcessHandler } = require('../../utils/icredit-queue.service');
 const { BOARD_CONFIG } = require('../../config/board-config');
 const { fetchItemDetails, extractColumnValue } = require('../../services/monday.service');
-const { httpsAgent } = require('../../config/axios-config');
+const { sendPartnerNotification } = require('../../services/slack.service');
 
 /**
  * Controller pentru iCredit
@@ -12,67 +11,6 @@ const { httpsAgent } = require('../../config/axios-config');
 
 // Slack webhook pentru notificări
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_ICREDIT;
-
-/**
- * Trimite notificare pe Slack despre rezultatul trimiterii la iCredit
- */
-async function sendSlackNotification(leadData, result) {
-  if (!SLACK_WEBHOOK) return;
-
-  try {
-    let mainText;
-    const leadNumber = `#${leadData.leadNumber || '1'}`;
-    const boardInfo = leadData.boardName ? `\nBoard: ${leadData.boardName}` : '';
-
-    // Success
-    if (result.success) {
-      mainText = `✅ Lead trimis cu succes către iCredit (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Telefon: ${leadData.phone}
-ID iCredit: ${result.id}`;
-    }
-
-    // Invalid data
-    else if (result.status === 'invalid_data') {
-      mainText = `⚠️ Lead NU trimis - Date invalide (${leadNumber})${boardInfo}
-Nume: ${leadData.name || 'LIPSĂ'}
-Telefon: ${leadData.phone || 'LIPSĂ'}
-Motiv: ${result.message}`;
-    }
-
-    // Auth error
-    else if (result.status === 'auth_error') {
-      mainText = `🔒 Eroare autentificare iCredit (${leadNumber})${boardInfo}
-Motiv: ${result.message}`;
-    }
-
-    // Rate limit
-    else if (result.status === 'rate_limit') {
-      mainText = `⏸️ Rate limit iCredit (${leadNumber})${boardInfo}
-Too many requests - așteptare necesară`;
-    }
-
-    // Validation error
-    else if (result.status === 'validation_error') {
-      mainText = `❌ Lead respins de iCredit (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Telefon: ${leadData.phone}
-Motiv: ${result.message}`;
-    }
-
-    // Other errors
-    else {
-      mainText = `❌ Eroare trimitere iCredit (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Telefon: ${leadData.phone}
-Motiv: ${result.message}`;
-    }
-
-    await axios.post(SLACK_WEBHOOK, { text: mainText }, { httpsAgent });
-  } catch (error) {
-    console.error(`   ❌ Eroare Slack: ${error.message}`);
-  }
-}
 
 /**
  * Webhook handler pentru iCredit Board
@@ -144,19 +82,20 @@ async function processIcreditFromQueue(queueItem, currentNumber, totalCount) {
       console.log(`      Telefon: ${phoneOriginal || 'LIPSĂ'}`);
 
       // Notificare Slack pentru date incomplete
-      await sendSlackNotification(
-        {
+      await sendPartnerNotification({
+        webhookUrl: SLACK_WEBHOOK,
+        partnerName: 'iCredit',
+        status: 'invalid_data',
+        leadData: {
           name: name || 'LIPSĂ',
           phone: phoneOriginal || 'LIPSĂ',
-          boardName: boardConfig.boardName,
-          leadNumber: currentNumber
+          boardName: boardConfig.boardName
         },
-        {
-          success: false,
-          status: 'invalid_data',
+        result: {
           message: 'Date incomplete - nume sau telefon lipsă'
-        }
-      );
+        },
+        leadNumber: currentNumber
+      });
 
       return;
     }
@@ -167,16 +106,29 @@ async function processIcreditFromQueue(queueItem, currentNumber, totalCount) {
       phone: phoneOriginal
     });
 
+    // Determină status-ul pentru Slack
+    let slackStatus;
+    if (result.success) {
+      slackStatus = 'success';
+    } else if (result.status === 'invalid_data') {
+      slackStatus = 'invalid_data';
+    } else {
+      slackStatus = 'error';
+    }
+
     // Notificare Slack cu rezultatul
-    await sendSlackNotification(
-      {
+    await sendPartnerNotification({
+      webhookUrl: SLACK_WEBHOOK,
+      partnerName: 'iCredit',
+      status: slackStatus,
+      leadData: {
         name,
         phone: phoneOriginal,
-        boardName: boardConfig.boardName,
-        leadNumber: currentNumber
+        boardName: boardConfig.boardName
       },
-      result
-    );
+      result,
+      leadNumber: currentNumber
+    });
 
   } catch (error) {
     console.error(`   ❌ Eroare procesare: ${error.message}`);

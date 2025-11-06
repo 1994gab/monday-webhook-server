@@ -1,9 +1,8 @@
-const axios = require('axios');
 const { sendLead, generateLoanAmount } = require('../../services/partners/creditfix.service');
 const { addToQueue, setProcessHandler } = require('../../utils/creditfix-queue.service');
 const { BOARD_CONFIG } = require('../../config/board-config');
 const { fetchItemDetails, extractColumnValue } = require('../../services/monday.service');
-const { httpsAgent } = require('../../config/axios-config');
+const { sendPartnerNotification } = require('../../services/slack.service');
 
 /**
  * Controller pentru CreditFix
@@ -12,71 +11,6 @@ const { httpsAgent } = require('../../config/axios-config');
 
 // Slack webhook pentru notificări
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_CREDITFIX;
-
-/**
- * Trimite notificare pe Slack despre rezultatul trimiterii la CreditFix
- */
-async function sendSlackNotification(leadData, result) {
-  if (!SLACK_WEBHOOK) return;
-
-  try {
-    let mainText;
-    const leadNumber = `#${leadData.leadNumber || '1'}`;
-    const boardInfo = leadData.boardName ? `\nBoard: ${leadData.boardName}` : '';
-
-    // Success
-    if (result.success) {
-      mainText = `✅ Lead trimis cu succes către CreditFix (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Email: ${leadData.email}
-Telefon: ${leadData.phone}
-CNP: ${leadData.cnp}
-Sumă: ${leadData.amount} RON
-Metodă încasare: ${leadData.cashingMethod}
-UID CreditFix: ${result.uid}`;
-    }
-
-    // Existing client
-    else if (result.status === 'existing') {
-      mainText = `🔄 Client existent în CreditFix (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Email: ${leadData.email}
-Telefon: ${leadData.phone}`;
-    }
-
-    // Duplicate lead
-    else if (result.status === 'duplicate') {
-      mainText = `🔄 Lead duplicat în CreditFix (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Email: ${leadData.email}
-Telefon: ${leadData.phone}`;
-    }
-
-    // Incomplete data
-    else if (result.status === 'incomplete') {
-      mainText = `⚠️ Lead NU trimis - Date incomplete (${leadNumber})${boardInfo}
-Nume: ${leadData.name || 'LIPSĂ'}
-Email: ${leadData.email || 'LIPSĂ'}
-Telefon: ${leadData.phone || 'LIPSĂ'}
-CNP: ${leadData.cnp || 'LIPSĂ'}
-Metodă încasare: ${leadData.cashingMethod || 'LIPSĂ'}`;
-    }
-
-    // Other errors
-    else {
-      mainText = `❌ Lead respins de CreditFix (${leadNumber})${boardInfo}
-Nume: ${leadData.name}
-Email: ${leadData.email}
-Telefon: ${leadData.phone}
-CNP: ${leadData.cnp}
-Motiv: ${result.message}`;
-    }
-
-    await axios.post(SLACK_WEBHOOK, { text: mainText }, { httpsAgent });
-  } catch (error) {
-    console.error(`   ❌ Eroare Slack: ${error.message}`);
-  }
-}
 
 /**
  * Webhook handler pentru CreditFix Board
@@ -166,21 +100,23 @@ async function processCreditFixFromQueue(queueItem, currentNumber, totalCount) {
       console.log(`      CNP: ${cnp || 'LIPSĂ'}`);
 
       // Notificare Slack pentru date incomplete
-      await sendSlackNotification(
-        {
+      await sendPartnerNotification({
+        webhookUrl: SLACK_WEBHOOK,
+        partnerName: 'CreditFix',
+        status: 'invalid_data',
+        leadData: {
           name: name || 'NECUNOSCUT',
           email: email,
           phone: phoneOriginal,
           cnp: cnp,
           cashingMethod: cashingMethod,
-          boardName: boardConfig.boardName,
-          leadNumber: currentNumber
+          boardName: boardConfig.boardName
         },
-        {
-          success: false,
-          status: 'incomplete'
-        }
-      );
+        result: {
+          message: 'Date incomplete - verifică CNP, email, telefon și metodă încasare'
+        },
+        leadNumber: currentNumber
+      });
 
       return;
     }
@@ -197,20 +133,33 @@ async function processCreditFixFromQueue(queueItem, currentNumber, totalCount) {
       clickId: null  // Nu avem click ID din Monday
     });
 
+    // Determină status-ul pentru Slack
+    let slackStatus;
+    if (result.success) {
+      slackStatus = 'success';
+    } else if (result.status === 'existing' || result.status === 'duplicate') {
+      slackStatus = 'duplicate';
+    } else {
+      slackStatus = 'error';
+    }
+
     // Notificare Slack cu rezultatul
-    await sendSlackNotification(
-      {
+    await sendPartnerNotification({
+      webhookUrl: SLACK_WEBHOOK,
+      partnerName: 'CreditFix',
+      status: slackStatus,
+      leadData: {
         name,
         email,
         phone: phoneOriginal,
         cnp,
         cashingMethod,
         amount,
-        boardName: boardConfig.boardName,
-        leadNumber: currentNumber
+        boardName: boardConfig.boardName
       },
-      result
-    );
+      result,
+      leadNumber: currentNumber
+    });
 
   } catch (error) {
     console.error(`   ❌ Eroare procesare: ${error.message}`);

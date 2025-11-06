@@ -1,10 +1,9 @@
-const axios = require('axios');
 const { sendLead } = require('../../services/partners/flex.service');
 const { addToQueue, setProcessHandler } = require('../../utils/flex-queue.service');
 const { BOARD_CONFIG } = require('../../config/board-config');
 const { fetchItemDetails, extractColumnValue } = require('../../services/monday.service');
 const { normalizePhoneNumber } = require('../../utils/phone-normalizer');
-const { httpsAgent } = require('../../config/axios-config');
+const { sendPartnerNotification } = require('../../services/slack.service');
 
 /**
  * Controller pentru FLEX (Mediatel)
@@ -13,34 +12,6 @@ const { httpsAgent } = require('../../config/axios-config');
 
 // Slack webhook pentru notificări
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL;
-
-/**
- * Trimite notificare pe Slack despre rezultatul trimiterii la Mediatel
- */
-async function sendSlackNotification(leadData, result) {
-  if (!SLACK_WEBHOOK) return;
-
-  try {
-    let mainText;
-    const leadNumber = `#${leadData.leadNumber || '1'}`;
-    const phoneInfo = leadData.originalPhone !== leadData.phone
-      ? `\nTelefon Monday: ${leadData.originalPhone}\nTelefon trimis: ${leadData.phone}`
-      : `\nTelefon: ${leadData.phone}`;
-    const boardInfo = leadData.boardName ? `\nBoard: ${leadData.boardName}` : '';
-
-    if (result.success) {
-      mainText = `✅ Lead trimis cu succes către Mediatel (${leadNumber})${boardInfo}\nNume: ${leadData.name}${phoneInfo}`;
-    } else if (result.message && result.message.includes('duplicat')) {
-      mainText = `⚠️ Lead nu a fost importat - posibil duplicat (${leadNumber})${boardInfo}\nNume: ${leadData.name}${phoneInfo}`;
-    } else {
-      mainText = `❌ Eroare trimitere lead către Mediatel (${leadNumber})${boardInfo}\nNume: ${leadData.name}${phoneInfo}\nMotiv: ${result.message}`;
-    }
-
-    await axios.post(SLACK_WEBHOOK, { text: mainText }, { httpsAgent });
-  } catch (error) {
-    console.error(`   ❌ Eroare Slack: ${error.message}`);
-  }
-}
 
 /**
  * Webhook handler pentru FLEX Board
@@ -111,19 +82,20 @@ async function processFlexFromQueue(queueItem, currentNumber, totalCount) {
 
       // Notificare Slack pentru telefon invalid
       if (!phone) {
-        await sendSlackNotification(
-          {
+        await sendPartnerNotification({
+          webhookUrl: SLACK_WEBHOOK,
+          partnerName: 'FLEX',
+          status: 'invalid_data',
+          leadData: {
             name: name || 'NECUNOSCUT',
-            phone: 'INVALID',
-            originalPhone: phoneOriginal,
-            boardName: boardConfig.boardName,
-            leadNumber: currentNumber
+            phone: phoneOriginal,
+            boardName: boardConfig.boardName
           },
-          {
-            success: false,
+          result: {
             message: 'Număr de telefon invalid'
-          }
-        );
+          },
+          leadNumber: currentNumber
+        });
       }
 
       return;
@@ -150,17 +122,30 @@ async function processFlexFromQueue(queueItem, currentNumber, totalCount) {
       console.log(`   ❌ Lead respins: ${result.message}`);
     }
 
+    // Determină status-ul pentru Slack
+    let slackStatus;
+    if (result.success) {
+      slackStatus = 'success';
+    } else if (result.message && result.message.toLowerCase().includes('duplicat')) {
+      slackStatus = 'duplicate';
+    } else {
+      slackStatus = 'error';
+    }
+
     // Notificare Slack cu rezultatul
-    await sendSlackNotification(
-      {
+    await sendPartnerNotification({
+      webhookUrl: SLACK_WEBHOOK,
+      partnerName: 'FLEX',
+      status: slackStatus,
+      leadData: {
         name,
         phone,
         originalPhone: phoneOriginal,
-        boardName: boardConfig.boardName,
-        leadNumber: currentNumber
+        boardName: boardConfig.boardName
       },
-      result
-    );
+      result,
+      leadNumber: currentNumber
+    });
 
   } catch (error) {
     console.error(`   ❌ Eroare procesare: ${error.message}`);

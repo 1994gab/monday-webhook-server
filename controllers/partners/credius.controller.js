@@ -1,9 +1,8 @@
-const axios = require('axios');
 const { sendLead } = require('../../services/partners/credius.service');
 const { addToQueue, setProcessHandler } = require('../../utils/credius-queue.service');
 const { BOARD_CONFIG } = require('../../config/board-config');
 const { fetchItemDetails, extractColumnValue } = require('../../services/monday.service');
-const { httpsAgent } = require('../../config/axios-config');
+const { sendPartnerNotification } = require('../../services/slack.service');
 
 /**
  * Controller pentru Credius
@@ -12,38 +11,6 @@ const { httpsAgent } = require('../../config/axios-config');
 
 // Slack webhook pentru notificări
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_CREDIUS;
-
-/**
- * Trimite notificare pe Slack despre rezultatul trimiterii la Credius
- */
-async function sendSlackNotification(leadData, result) {
-  if (!SLACK_WEBHOOK) return;
-
-  try {
-    let mainText;
-    const leadNumber = `#${leadData.leadNumber || '1'}`;
-
-    // Adaugă info despre numărul original vs normalizat dacă diferă
-    let phoneInfo = `Telefon trimis: ${leadData.normalizedPhone}`;
-    if (leadData.originalPhone && leadData.originalPhone !== leadData.normalizedPhone) {
-      phoneInfo = `Număr Monday: ${leadData.originalPhone}\nNumăr trimis: ${leadData.normalizedPhone}`;
-    }
-
-    const boardInfo = leadData.boardName ? `\nBoard: ${leadData.boardName}` : '';
-
-    if (result.success) {
-      mainText = `✅ Lead trimis cu succes către Credius (${leadNumber})${boardInfo}\nNume: ${leadData.name}\n${phoneInfo}\nID Credius: ${result.leadId}`;
-    } else if (result.message === 'Lead Duplicat') {
-      mainText = `🔄 Lead duplicat în Credius (${leadNumber})${boardInfo}\nNume: ${leadData.name}\n${phoneInfo}`;
-    } else {
-      mainText = `❌ Lead respins de Credius (${leadNumber})${boardInfo}\nNume: ${leadData.name}\n${phoneInfo}\nMotiv: ${result.message}`;
-    }
-
-    await axios.post(SLACK_WEBHOOK, { text: mainText }, { httpsAgent });
-  } catch (error) {
-    console.error(`   ❌ Eroare Slack: ${error.message}`);
-  }
-}
 
 /**
  * Webhook handler pentru Credius Board
@@ -122,19 +89,30 @@ async function processCrediusFromQueue(queueItem, currentNumber, totalCount) {
     const { normalizePhoneNumber } = require('../../services/partners/credius.service');
     const normalizedPhone = normalizePhoneNumber(phoneOriginal);
 
+    // Determină status-ul pentru Slack
+    let slackStatus;
+    if (result.success) {
+      slackStatus = 'success';
+    } else if (result.message === 'Lead Duplicat') {
+      slackStatus = 'duplicate';
+    } else {
+      slackStatus = 'error';
+    }
+
     // Notificare Slack
-    await sendSlackNotification(
-      {
+    await sendPartnerNotification({
+      webhookUrl: SLACK_WEBHOOK,
+      partnerName: 'Credius',
+      status: slackStatus,
+      leadData: {
         name,
-        normalizedPhone: normalizedPhone || phoneOriginal,
+        phone: normalizedPhone || phoneOriginal,
         originalPhone: phoneOriginal,
-        boardName: boardConfig.boardName,
-        itemId,
-        leadNumber: currentNumber,
-        totalLeads: totalCount
+        boardName: boardConfig.boardName
       },
-      result
-    );
+      result,
+      leadNumber: currentNumber
+    });
 
   } catch (error) {
     console.error(`   ❌ Eroare procesare: ${error.message}`);
