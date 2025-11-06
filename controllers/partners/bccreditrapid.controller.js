@@ -87,6 +87,27 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
       console.log(`   Angajator: ${employer || 'LIPSĂ'}`);
       console.log(`   Salariu: ${income || 'LIPSĂ'}`);
       console.log(`   Sumă dorită: ${amount || 'LIPSĂ'}`);
+
+      // Notificare Slack pentru date incomplete
+      await sendPartnerNotification({
+        webhookUrl: SLACK_WEBHOOK,
+        partnerName: 'BC Credit Rapid',
+        status: 'invalid_data',
+        leadData: {
+          name: name || 'LIPSĂ',
+          email: email,
+          phone: phone,
+          employer: employer,
+          income: income,
+          amount: amount,
+          boardName: boardConfig.boardName
+        },
+        result: {
+          message: 'Date incomplete - verifică toate câmpurile obligatorii (nume, email, telefon, angajator, salariu, sumă dorită)'
+        },
+        leadNumber: currentNumber
+      });
+
       return;
     }
 
