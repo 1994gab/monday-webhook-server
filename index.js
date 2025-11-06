@@ -44,6 +44,7 @@ app.listen(PORT, () => {
   console.log(`   - POST /webhook/monday/credius`);
   console.log(`   - POST /webhook/monday/creditfix`);
   console.log(`   - POST /webhook/monday/icredit`);
+  console.log(`   - POST /webhook/monday/bccreditrapid`);
   console.log(`   - GET  /health`);
   console.log('====================================');
 });

@@ -6,6 +6,7 @@ const flexController = require('../controllers/partners/flex.controller');
 const crediusController = require('../controllers/partners/credius.controller');
 const creditfixController = require('../controllers/partners/creditfix.controller');
 const icreditController = require('../controllers/partners/icredit.controller');
+const bccreditrapidController = require('../controllers/partners/bccreditrapid.controller');
 
 /**
  * RUTE WEBHOOK-URI PARTENERI
@@ -23,5 +24,8 @@ router.post('/creditfix', creditfixController.handleCreditFixWebhook);
 
 // ===== ICREDIT =====
 router.post('/icredit', icreditController.handleIcreditWebhook);
+
+// ===== BC CREDIT RAPID =====
+router.post('/bccreditrapid', bccreditrapidController.handleBCCreditRapidWebhook);
 
 module.exports = router;
