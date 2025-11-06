@@ -77,6 +77,23 @@ async function processCrediusFromQueue(queueItem, currentNumber, totalCount) {
     // Validare date
     if (!name || !phoneOriginal) {
       console.log(`   ❌ Date incomplete - SKIP (Nume: ${name || 'LIPSĂ'}, Telefon: ${phoneOriginal || 'LIPSĂ'})`);
+
+      // Notificare Slack pentru date incomplete
+      await sendPartnerNotification({
+        webhookUrl: SLACK_WEBHOOK,
+        partnerName: 'Credius',
+        status: 'invalid_data',
+        leadData: {
+          name: name || 'LIPSĂ',
+          phone: phoneOriginal || 'LIPSĂ',
+          boardName: boardConfig.boardName
+        },
+        result: {
+          message: 'Date incomplete - verifică nume și telefon'
+        },
+        leadNumber: currentNumber
+      });
+
       return;
     }
 

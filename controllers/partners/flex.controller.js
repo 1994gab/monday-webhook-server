@@ -80,23 +80,25 @@ async function processFlexFromQueue(queueItem, currentNumber, totalCount) {
     if (!name || !phone) {
       console.log(`   ❌ Date incomplete - SKIP (Nume: ${name || 'LIPSĂ'}, Telefon: ${phoneOriginal || 'LIPSĂ'})`);
 
-      // Notificare Slack pentru telefon invalid
-      if (!phone) {
-        await sendPartnerNotification({
-          webhookUrl: SLACK_WEBHOOK,
-          partnerName: 'FLEX',
-          status: 'invalid_data',
-          leadData: {
-            name: name || 'NECUNOSCUT',
-            phone: phoneOriginal,
-            boardName: boardConfig.boardName
-          },
-          result: {
-            message: 'Număr de telefon invalid'
-          },
-          leadNumber: currentNumber
-        });
-      }
+      // Notificare Slack pentru date incomplete sau telefon invalid
+      await sendPartnerNotification({
+        webhookUrl: SLACK_WEBHOOK,
+        partnerName: 'FLEX',
+        status: 'invalid_data',
+        leadData: {
+          name: name || 'LIPSĂ',
+          phone: phoneOriginal || 'LIPSĂ',
+          boardName: boardConfig.boardName
+        },
+        result: {
+          message: !name && !phone
+            ? 'Date incomplete - lipsesc nume și telefon'
+            : !name
+              ? 'Nume lipsă'
+              : 'Număr de telefon invalid sau lipsă'
+        },
+        leadNumber: currentNumber
+      });
 
       return;
     }
