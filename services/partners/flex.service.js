@@ -64,9 +64,10 @@ async function sendLead(leadData) {
       agent: httpAgent  // Connection pooling pentru HTTP
     });
 
-    clearTimeout(timeoutId);
-
     const responseData = await response.json();
+
+    // Clear timeout DUPĂ ce primim răspunsul complet (headers + body)
+    clearTimeout(timeoutId);
 
     // Raw response pentru succes
     console.log('[FLEX] Raw Response Success:', responseData);
@@ -105,11 +106,11 @@ async function sendLead(leadData) {
   } catch (error) {
     console.log('[FLEX] Raw Response Error:', error);
 
-    // Timeout
-    if (error.code === 'ECONNABORTED' || error.type === 'request-timeout') {
+    // Timeout (AbortController)
+    if (error.name === 'AbortError' || error.code === 'ECONNABORTED' || error.type === 'request-timeout') {
       return {
         success: false,
-        message: 'Request timeout după 20 secunde'
+        message: `Request timeout după ${MEDIATEL_CONFIG.TIMEOUT / 1000} secunde`
       };
     }
 
