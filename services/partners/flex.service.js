@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const AbortController = require('abort-controller');
 const { httpAgent } = require('../../config/axios-config');
 require('dotenv').config();
 
@@ -47,6 +48,10 @@ async function sendLead(leadData) {
       }
     ];
 
+    // AbortController pentru timeout corect (node-fetch v2 compatibility)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), MEDIATEL_CONFIG.TIMEOUT);
+
     // Send to Mediatel API
     const response = await fetch(MEDIATEL_CONFIG.API_URL, {
       method: 'POST',
@@ -55,9 +60,11 @@ async function sendLead(leadData) {
         'Authorization': `Bearer ${MEDIATEL_CONFIG.AUTH_TOKEN}`
       },
       body: JSON.stringify(mediatetPayload),
-      timeout: MEDIATEL_CONFIG.TIMEOUT,
+      signal: controller.signal,
       agent: httpAgent  // Connection pooling pentru HTTP
     });
+
+    clearTimeout(timeoutId);
 
     const responseData = await response.json();
 
