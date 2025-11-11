@@ -53,6 +53,7 @@ async function sendLead(leadData) {
     const timeoutId = setTimeout(() => controller.abort(), MEDIATEL_CONFIG.TIMEOUT);
 
     // Send to Mediatel API
+    // TEMPORAR: fără httpAgent pentru a testa dacă keepAlive cauzează problema
     const response = await fetch(MEDIATEL_CONFIG.API_URL, {
       method: 'POST',
       headers: {
@@ -60,8 +61,8 @@ async function sendLead(leadData) {
         'Authorization': `Bearer ${MEDIATEL_CONFIG.AUTH_TOKEN}`
       },
       body: JSON.stringify(mediatetPayload),
-      signal: controller.signal,
-      agent: httpAgent  // Connection pooling pentru HTTP
+      signal: controller.signal
+      // agent: httpAgent  // ← DEZACTIVAT TEMPORAR
     });
 
     const responseData = await response.json();
