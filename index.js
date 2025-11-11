@@ -44,6 +44,55 @@ app.get('/debug/env', async (req, res) => {
   }
 });
 
+// Debug endpoint - Test FLEX connection
+app.get('/debug/flex-test', async (req, res) => {
+  console.log('🔍 [DEBUG] Testare conexiune FLEX...');
+
+  const { sendLead } = require('./services/partners/flex.service');
+
+  const startTime = Date.now();
+  const testData = {
+    id: `test-${Date.now()}`,
+    name: 'Test Debug Flex',
+    phone: '0747123456',
+    originalPhone: '0747123456',
+    boardName: 'Test Board'
+  };
+
+  try {
+    const result = await sendLead(testData);
+    const duration = Date.now() - startTime;
+
+    console.log(`✅ [DEBUG] FLEX răspuns în ${duration}ms`);
+
+    res.json({
+      success: true,
+      duration: `${duration}ms`,
+      durationSeconds: (duration / 1000).toFixed(2),
+      result: result,
+      testData: testData,
+      serverIP: req.ip,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+
+    console.log(`❌ [DEBUG] FLEX timeout/eroare după ${duration}ms`);
+
+    res.status(500).json({
+      success: false,
+      duration: `${duration}ms`,
+      durationSeconds: (duration / 1000).toFixed(2),
+      error: error.message,
+      errorType: error.type,
+      errorCode: error.code,
+      testData: testData,
+      serverIP: req.ip,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Debug endpoint - Test Credius connection
 app.get('/debug/credius-test', async (req, res) => {
   console.log('🔍 [DEBUG] Testare conexiune Credius...');
