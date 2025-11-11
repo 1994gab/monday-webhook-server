@@ -156,6 +156,7 @@ app.listen(PORT, () => {
   console.log('====================================');
   console.log(`🚀 Monday Webhook Server running on port ${PORT}`);
   console.log(`📅 Data/Ora: ${new Date().toISOString()}`);
+  console.log(`⏱️  FLEX Timeout: ${process.env.FLEX_TIMEOUT}ms`);
   console.log(`🌐 Webhook-uri disponibile:`);
   console.log(`   - POST /webhook/monday/flex`);
   console.log(`   - POST /webhook/monday/credius`);
