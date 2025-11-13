@@ -1,3 +1,6 @@
 node_modules/
 .env
 *.log
+
+# Documentație cu informații sensibile (IP server, deployment details, SSH)
+docs/
