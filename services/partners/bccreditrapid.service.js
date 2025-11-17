@@ -19,9 +19,9 @@ const BCCREDITRAPID_CONFIG = {
 };
 
 /**
- * Convertește numărul de telefon la formatul +40XXXXXXXXX
+ * Convertește numărul de telefon la formatul 07XXXXXXXX (cerut de BC Credit Rapid API)
  * @param {string} phone - Numărul de telefon în orice format
- * @returns {string|null} Numărul în format +40XXXXXXXXX
+ * @returns {string|null} Numărul în format 07XXXXXXXX
  */
 function normalizePhoneNumber(phone) {
   if (!phone) return null;
@@ -29,20 +29,19 @@ function normalizePhoneNumber(phone) {
   // Elimină tot ce nu e cifră
   let cleaned = phone.replace(/\D/g, '');
 
-  // Elimină prefixul 40 sau 0040 dacă există
+  // Elimină prefixul 0040 sau 40 dacă există
   if (cleaned.startsWith('0040')) {
     cleaned = cleaned.substring(4);
   } else if (cleaned.startsWith('40')) {
     cleaned = cleaned.substring(2);
   }
 
-  // Elimină 0 de la început dacă există (07XX → 7XX)
-  if (cleaned.startsWith('0')) {
-    cleaned = cleaned.substring(1);
+  // Dacă nu începe cu 0 și are 9 cifre și începe cu 7, adaugă 0
+  if (!cleaned.startsWith('0') && cleaned.length === 9 && cleaned.startsWith('7')) {
+    cleaned = '0' + cleaned;
   }
 
-  // Returnează +40 + numărul
-  return '+40' + cleaned;
+  return cleaned;  // 07XXXXXXXX
 }
 
 /**
