@@ -53,7 +53,7 @@ app.post('/test/bulk-mediate', async (req, res) => {
   const path = require('path');
   const { sendLead } = require('./services/partners/flex.service');
 
-  const csvPath = 'C:\\Users\\pupaz\\Downloads\\FLEX 14.11.2025.csv';
+  const csvPath = 'C:\\Users\\pupaz\\Downloads\\FLEX 17.11.2025.csv';
 
   try {
     console.log('\n📂 Citesc CSV-ul...');
@@ -191,7 +191,7 @@ app.post('/test/bulk-mediate', async (req, res) => {
     let report = `# RAPORT TRIMITERE LEADURI CĂTRE MEDIATEL (FLEX)
 
 **Data/Ora:** ${new Date().toLocaleString('ro-RO')}
-**Fișier CSV:** FLEX 14.11.2025.csv
+**Fișier CSV:** FLEX 17.11.2025.csv
 **Durata procesare:** ${duration} minute
 
 ---

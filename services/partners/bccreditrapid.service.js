@@ -19,39 +19,29 @@ const BCCREDITRAPID_CONFIG = {
 };
 
 /**
- * Normalizează numărul de telefon la formatul cerut: +40XXXXXXXXX
- * Acceptă doar numere românești mobile
+ * Convertește numărul de telefon la formatul +40XXXXXXXXX
  * @param {string} phone - Numărul de telefon în orice format
- * @returns {string|null} Numărul normalizat sau null dacă nu e număr românesc valid
+ * @returns {string|null} Numărul în format +40XXXXXXXXX
  */
 function normalizePhoneNumber(phone) {
   if (!phone) return null;
 
-  // Elimină toate caracterele non-numerice
+  // Elimină tot ce nu e cifră
   let cleaned = phone.replace(/\D/g, '');
 
-  // Elimină prefixul de țară dacă există
-  if (cleaned.startsWith('40')) {
-    cleaned = cleaned.substring(2);
-  } else if (cleaned.startsWith('0040')) {
+  // Elimină prefixul 40 sau 0040 dacă există
+  if (cleaned.startsWith('0040')) {
     cleaned = cleaned.substring(4);
+  } else if (cleaned.startsWith('40')) {
+    cleaned = cleaned.substring(2);
   }
 
-  // Elimină 0 de la început dacă există (07XXXXXXXX → 7XXXXXXXX)
+  // Elimină 0 de la început dacă există (07XX → 7XX)
   if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
 
-  // Validare: trebuie să fie 9 cifre și să înceapă cu 7 (mobile românesc)
-  if (cleaned.length !== 9) {
-    return null;
-  }
-
-  if (!cleaned.startsWith('7')) {
-    return null;
-  }
-
-  // Returnează în format internațional: +40XXXXXXXXX
+  // Returnează +40 + numărul
   return '+40' + cleaned;
 }
 
@@ -108,17 +98,8 @@ async function sendLead(leadData) {
     throw new Error('Numele, email, telefon și angajator sunt obligatorii');
   }
 
-  // Normalizează numărul de telefon
+  // Convertește numărul la format +40XXXXXXXXX
   const normalizedPhone = normalizePhoneNumber(leadData.phone);
-
-  if (!normalizedPhone) {
-    return {
-      success: false,
-      status: 'invalid',
-      message: 'Număr de telefon invalid sau nu este mobil românesc (trebuie să înceapă cu 07/+407)',
-      errors: { phone: ['Număr mobil românesc invalid'] }
-    };
-  }
 
   // Validează income
   const validIncome = validateIncome(leadData.income);
