@@ -19,7 +19,7 @@ const BCCREDITRAPID_CONFIG = {
 };
 
 /**
- * Normalizează numărul de telefon la formatul cerut: 07XXXXXXXX
+ * Normalizează numărul de telefon la formatul cerut: +40XXXXXXXXX
  * Acceptă doar numere românești mobile
  * @param {string} phone - Numărul de telefon în orice format
  * @returns {string|null} Numărul normalizat sau null dacă nu e număr românesc valid
@@ -30,28 +30,29 @@ function normalizePhoneNumber(phone) {
   // Elimină toate caracterele non-numerice
   let cleaned = phone.replace(/\D/g, '');
 
-  // Elimină prefixul de țară +40 dacă există
+  // Elimină prefixul de țară dacă există
   if (cleaned.startsWith('40')) {
     cleaned = cleaned.substring(2);
   } else if (cleaned.startsWith('0040')) {
     cleaned = cleaned.substring(4);
   }
 
-  // Dacă nu începe cu 0 și are 9 cifre (7XXXXXXXX), adaugă 0
-  if (!cleaned.startsWith('0') && cleaned.length === 9 && cleaned.startsWith('7')) {
-    cleaned = '0' + cleaned;
+  // Elimină 0 de la început dacă există (07XXXXXXXX → 7XXXXXXXX)
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
   }
 
-  // Validare: trebuie să fie 07XXXXXXXX (numere mobile românești)
-  if (cleaned.length !== 10) {
+  // Validare: trebuie să fie 9 cifre și să înceapă cu 7 (mobile românesc)
+  if (cleaned.length !== 9) {
     return null;
   }
 
-  if (!cleaned.startsWith('07')) {
+  if (!cleaned.startsWith('7')) {
     return null;
   }
 
-  return cleaned;
+  // Returnează în format internațional: +40XXXXXXXXX
+  return '+40' + cleaned;
 }
 
 /**
@@ -114,8 +115,8 @@ async function sendLead(leadData) {
     return {
       success: false,
       status: 'invalid',
-      message: 'Număr de telefon invalid sau nu este mobil românesc (trebuie să înceapă cu 07)',
-      errors: { phone: ['Trebuie să înceapă cu 07'] }
+      message: 'Număr de telefon invalid sau nu este mobil românesc (trebuie să înceapă cu 07/+407)',
+      errors: { phone: ['Număr mobil românesc invalid'] }
     };
   }
 
