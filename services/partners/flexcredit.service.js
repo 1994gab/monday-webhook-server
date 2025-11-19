@@ -176,7 +176,7 @@ async function sendLead(leadData) {
       return {
         success: false,
         requestId: result.request_id || requestId,
-        message: 'Lead respins de FlexCredit',
+        message: 'Lead RESPINS de FlexCredit - CNP duplicat sau restricții interne (clientul a mai aplicat anterior)',
         rawResponse: result
       };
     } else {
@@ -191,9 +191,20 @@ async function sendLead(leadData) {
   } catch (error) {
     console.error('[FLEXCREDIT] Raw Response Error:', error.response?.data || error.message);
 
-    // Verifică dacă e eroare de validare
+    // Verifică dacă e eroare de validare sau respingere
     if (error.response?.data) {
       const errorData = error.response.data;
+
+      // Verifică dacă e respingere (vine ca eroare HTTP dar cu status rejected)
+      if (errorData.status === 'rejected' || errorData.status === 'Rejected') {
+        return {
+          success: false,
+          requestId: errorData.request_id || requestId,
+          message: 'Lead RESPINS de FlexCredit - CNP duplicat sau restricții interne (clientul a mai aplicat anterior)',
+          rawResponse: errorData
+        };
+      }
+
       let errorMessage = 'Eroare FlexCredit';
 
       // Parse erori de validare
