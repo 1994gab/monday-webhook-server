@@ -162,11 +162,38 @@ async function sendLead(leadData) {
 
     // Validation error (422)
     if (error.response && error.response.status === 422) {
+      const errorData = error.response.data;
+
+      // Check for duplicate/already in analysis
+      if (errorData?.errors?.credit_application) {
+        const creditError = errorData.errors.credit_application;
+        if (creditError.includes('deja in analiza') || creditError.includes('duplicate')) {
+          return {
+            success: false,
+            status: 'duplicate',
+            message: 'Lead DUPLICAT - Cererea este deja în analiză la iCredit',
+            rawResponse: errorData
+          };
+        }
+      }
+
+      // Check for duplicate phone
+      if (errorData?.errors?.telephone) {
+        return {
+          success: false,
+          status: 'duplicate',
+          message: `Lead DUPLICAT - Telefon deja existent: ${errorData.errors.telephone}`,
+          rawResponse: errorData
+        };
+      }
+
+      // Other validation errors
       return {
         success: false,
         status: 'validation_error',
-        message: error.response.data?.message || 'Erori de validare',
-        errors: error.response.data?.errors || []
+        message: errorData?.message || 'Erori de validare',
+        errors: errorData?.errors || [],
+        rawResponse: errorData
       };
     }
 
