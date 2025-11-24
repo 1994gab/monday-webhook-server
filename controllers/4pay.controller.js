@@ -136,6 +136,12 @@ async function handleDeliveryStatus(req, res) {
     console.log('\n📬 [4PAY DSN] Notificare de livrare primită...');
     console.log('Body:', JSON.stringify(req.body, null, 2));
 
+    // Validare challenge de la 4Pay (similar cu Monday)
+    if (req.body && req.body.challenge) {
+      console.log('✅ [4PAY DSN] Challenge primit - răspund cu challenge');
+      return res.status(200).json({ challenge: req.body.challenge });
+    }
+
     const { event_type, msgID, dlv_status, msg_dst, msg_network, dlv_error, external_messageID } = req.body;
 
     // Verificare event type
