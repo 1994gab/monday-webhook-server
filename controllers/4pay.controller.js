@@ -134,7 +134,13 @@ async function sendTemplateSMS(req, res) {
 async function handleDeliveryStatus(req, res) {
   try {
     console.log('\n📬 [4PAY DSN] Notificare de livrare primită...');
+    console.log('=== RAW REQUEST DEBUG ===');
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
     console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('Query:', JSON.stringify(req.query, null, 2));
+    console.log('Method:', req.method);
+    console.log('Content-Type:', req.get('Content-Type'));
+    console.log('========================');
 
     // Validare challenge de la 4Pay (similar cu Monday)
     if (req.body && req.body.challenge) {
