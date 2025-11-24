@@ -191,8 +191,11 @@ async function handleDeliveryStatus(req, res) {
 
     console.log(`📨 [4PAY DSN] SMS ${msgID} (${networkName}): ${statusName}`);
 
+    // Extrage date din mapping (nume + telefon)
+    const ifnSmsController = require('./partners/ifn-sms.controller');
+    const smsData = ifnSmsController.getSmsData(msgID);
+
     // Trimite notificare Slack
-    const slackService = require('../services/slack.service');
     const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_IFN_SMS;
 
     if (SLACK_WEBHOOK) {
@@ -200,14 +203,30 @@ async function handleDeliveryStatus(req, res) {
 
       if (dlv_status === 'D') {
         // SMS livrat cu succes
-        slackMessage = `✅ *SMS livrat cu succes*\n` +
-          `Rețea: *${networkName}*\n` +
-          `msgID: ${msgID}`;
+        if (smsData) {
+          slackMessage = `✅ *SMS livrat cu succes*\n` +
+            `Nume: *${smsData.name}*\n` +
+            `Telefon: *${smsData.phone}*\n` +
+            `Rețea: *${networkName}*\n` +
+            `msgID: ${msgID}`;
+        } else {
+          slackMessage = `✅ *SMS livrat cu succes*\n` +
+            `Rețea: *${networkName}*\n` +
+            `msgID: ${msgID}`;
+        }
       } else if (dlv_status === 'F' || dlv_status === 'E') {
-        // SMS eșuat
-        slackMessage = `❌ *SMS eșuat*\n` +
-          `Rețea: *${networkName}*\n` +
-          `msgID: ${msgID}`;
+        // SMS eșuat la livrare
+        if (smsData) {
+          slackMessage = `❌ *SMS eșuat la livrare*\n` +
+            `Nume: *${smsData.name}*\n` +
+            `Telefon: *${smsData.phone}*\n` +
+            `Rețea: *${networkName}*\n` +
+            `msgID: ${msgID}`;
+        } else {
+          slackMessage = `❌ *SMS eșuat la livrare*\n` +
+            `Rețea: *${networkName}*\n` +
+            `msgID: ${msgID}`;
+        }
       } else {
         // Alte statusuri (în tranzit, buffer)
         slackMessage = `📨 *SMS ${statusName}*\n` +
@@ -215,7 +234,7 @@ async function handleDeliveryStatus(req, res) {
           `msgID: ${msgID}`;
       }
 
-      // Trimite direct la Slack (nu folosim sendPartnerNotification pentru DSN)
+      // Trimite direct la Slack
       const fetch = require('node-fetch');
       await fetch(SLACK_WEBHOOK, {
         method: 'POST',
@@ -224,6 +243,12 @@ async function handleDeliveryStatus(req, res) {
       });
 
       console.log('📨 Notificare DSN trimisă la Slack');
+
+      // Cleanup: șterge din mapping după notificare
+      if (smsData) {
+        ifnSmsController.deleteSmsData(msgID);
+        console.log(`🗑️  Șters din mapping: msgID ${msgID}`);
+      }
     }
 
     // Răspuns OK către 4Pay (obligatoriu!)

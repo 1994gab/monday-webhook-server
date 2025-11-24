@@ -16,6 +16,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_IFN_SMS;
 // Link Credilink (poate fi mutat în .env dacă se schimbă des)
 const CREDILINK_URL = 'https://bit.ly/3WVKh8c';
 
+// Mapping în memorie: msgID → {name, phone}
+// Pentru a putea trimite notificări complete când primim webhook DSN
+const smsMapping = new Map();
+
 /**
  * Webhook handler pentru IFN-SMS
  * Se activează când agentul schimbă coloana "IFN-SMS" la "SEND SMS"
@@ -119,31 +123,37 @@ async function processIfnSmsFromQueue(queueItem, currentNumber, totalCount) {
     // Log rezultat
     if (result.success) {
       console.log(`   ✅ SMS trimis cu succes! msgID: ${result.msgId}`);
+
+      // Salvează în mapping pentru notificare DSN ulterioară
+      smsMapping.set(result.msgId, {
+        name: name,
+        phone: phone,
+        timestamp: Date.now()
+      });
+
+      console.log(`   📋 Salvat în mapping: msgID ${result.msgId} → ${name} (${phone})`);
+      console.log(`   ⏳ Aștept webhook DSN pentru notificare Slack...`);
+
     } else {
       console.log(`   ❌ SMS eșuat: ${result.message}`);
+
+      // Pentru erori, trimitem notificare imediată
+      if (SLACK_WEBHOOK) {
+        const fetch = require('node-fetch');
+        const slackMessage = `❌ *SMS eșuat* (#${currentNumber})\n` +
+          `Nume: *${name}*\n` +
+          `Telefon: *${phone}*\n` +
+          `Eroare: ${result.message}`;
+
+        await fetch(SLACK_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: slackMessage })
+        });
+
+        console.log('📨 Notificare eroare trimisă la Slack');
+      }
     }
-
-    // Determină status-ul pentru Slack
-    const slackStatus = result.success ? 'success' : 'error';
-
-    // Notificare Slack cu rezultatul
-    await sendPartnerNotification({
-      webhookUrl: SLACK_WEBHOOK,
-      partnerName: 'IFN-SMS',
-      status: slackStatus,
-      leadData: {
-        name,
-        phone,
-        originalPhone: phoneOriginal,
-        boardName: boardConfig.boardName,
-        smsMessage: `Credilink: ${CREDILINK_URL}`
-      },
-      result: {
-        ...result,
-        msgId: result.msgId || 'N/A'
-      },
-      leadNumber: currentNumber
-    });
 
   } catch (error) {
     console.error(`   ❌ Eroare procesare: ${error.message}`);
@@ -154,7 +164,23 @@ async function processIfnSmsFromQueue(queueItem, currentNumber, totalCount) {
 // Inițializare handler pentru coadă IFN-SMS
 setProcessHandler(processIfnSmsFromQueue);
 
+/**
+ * Obține datele din mapping pentru un msgID
+ */
+function getSmsData(msgId) {
+  return smsMapping.get(msgId);
+}
+
+/**
+ * Șterge msgID din mapping după procesare
+ */
+function deleteSmsData(msgId) {
+  return smsMapping.delete(msgId);
+}
+
 module.exports = {
   handleIfnSmsWebhook,
-  processIfnSmsFromQueue
+  processIfnSmsFromQueue,
+  getSmsData,
+  deleteSmsData
 };
