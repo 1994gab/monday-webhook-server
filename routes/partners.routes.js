@@ -8,6 +8,7 @@ const creditfixController = require('../controllers/partners/creditfix.controlle
 const icreditController = require('../controllers/partners/icredit.controller');
 const bccreditrapidController = require('../controllers/partners/bccreditrapid.controller');
 const flexcreditController = require('../controllers/partners/flexcredit.controller');
+const ifnSmsController = require('../controllers/partners/ifn-sms.controller');
 
 /**
  * RUTE WEBHOOK-URI PARTENERI
@@ -31,5 +32,8 @@ router.post('/bccreditrapid', bccreditrapidController.handleBCCreditRapidWebhook
 
 // ===== FLEXCREDIT =====
 router.post('/flexcredit', flexcreditController.handleFlexCreditWebhook);
+
+// ===== IFN-SMS (4Pay) =====
+router.post('/ifn-sms', ifnSmsController.handleIfnSmsWebhook);
 
 module.exports = router;

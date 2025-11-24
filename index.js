@@ -2,6 +2,7 @@ const express = require('express');
 require('dotenv').config();
 
 const partnersRoutes = require('./routes/partners.routes');
+const fourPayRoutes = require('./routes/4pay.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -314,6 +315,9 @@ app.get('/debug/credius-test', async (req, res) => {
 // Routes pentru parteneri (webhook-uri)
 app.use('/webhook/monday', partnersRoutes);
 
+// Routes pentru 4Pay SMS
+app.use('/api/4pay', fourPayRoutes);
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('❌ [ERROR HANDLER]', err);
@@ -337,6 +341,13 @@ app.listen(PORT, () => {
   console.log(`   - POST /webhook/monday/creditfix`);
   console.log(`   - POST /webhook/monday/icredit`);
   console.log(`   - POST /webhook/monday/bccreditrapid`);
+  console.log(`   - POST /webhook/monday/flexcredit`);
+  console.log(`   - POST /webhook/monday/ifn-sms (4Pay SMS Credilink)`);
   console.log(`   - GET  /health`);
+  console.log(`\n📱 4Pay SMS endpoints:`);
+  console.log(`   - POST /api/4pay/send-sms`);
+  console.log(`   - POST /api/4pay/send-template-sms`);
+  console.log(`   - POST /api/4pay/delivery-status (webhook DSN)`);
+  console.log(`   - POST /api/4pay/receive-sms (webhook MO)`);
   console.log('====================================');
 });
