@@ -343,6 +343,7 @@ app.listen(PORT, () => {
   console.log(`   - POST /webhook/monday/icredit`);
   console.log(`   - POST /webhook/monday/bccreditrapid`);
   console.log(`   - POST /webhook/monday/flexcredit`);
+  console.log(`   - POST /webhook/monday/simplucredit`);
   console.log(`   - POST /webhook/monday/ifn-sms (4Pay SMS Credilink)`);
   console.log(`   - GET  /health`);
   console.log(`\n📱 4Pay SMS endpoints:`);
