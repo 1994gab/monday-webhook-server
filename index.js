@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json({ limit: '500kb' }));
+app.use(express.urlencoded({ extended: true, limit: '500kb' })); // Pentru 4Pay webhook DSN
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -134,13 +134,6 @@ async function sendTemplateSMS(req, res) {
 async function handleDeliveryStatus(req, res) {
   try {
     console.log('\n📬 [4PAY DSN] Notificare de livrare primită...');
-    console.log('=== RAW REQUEST DEBUG ===');
-    console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-    console.log('Query:', JSON.stringify(req.query, null, 2));
-    console.log('Method:', req.method);
-    console.log('Content-Type:', req.get('Content-Type'));
-    console.log('========================');
 
     // Validare challenge de la 4Pay (similar cu Monday)
     if (req.body && req.body.challenge) {
@@ -148,13 +141,29 @@ async function handleDeliveryStatus(req, res) {
       return res.status(200).json({ challenge: req.body.challenge });
     }
 
-    const { event_type, msgID, dlv_status, msg_dst, msg_network, dlv_error, external_messageID } = req.body;
+    // 4Pay trimite datele în query params, nu în body
+    // Format: event=208972951/TI/D=D/5873/900824319
+    const eventParam = req.query.event || req.body?.event;
 
-    // Verificare event type
-    if (event_type !== 'RX-DSN') {
-      console.log(`⚠️ [4PAY DSN] Event type incorect: ${event_type}`);
-      return res.sendStatus(200); // Răspundem OK oricum
+    if (!eventParam) {
+      console.log('⚠️ [4PAY DSN] Parametru event lipsă');
+      return res.sendStatus(200);
     }
+
+    // Parse event string: 208972951/TI/D=D/5873/900824319
+    // Format: msgID/network/status/servID/msgID_confirmation
+    const parts = eventParam.split('/');
+
+    if (parts.length < 5) {
+      console.log('⚠️ [4PAY DSN] Format event invalid');
+      return res.sendStatus(200);
+    }
+
+    const msgID = parts[4]; // 900824319
+    const msg_network = parts[1]; // TI sau O, V, etc.
+    const statusPart = parts[2]; // D=D
+    const dlv_status = statusPart.split('=')[1]; // D
+    const msg_dst = 'N/A'; // Nu avem numărul în query params
 
     // Map status codes
     const statusNames = {
@@ -178,8 +187,9 @@ async function handleDeliveryStatus(req, res) {
 
     const statusName = statusNames[dlv_status] || dlv_status;
     const networkName = networkNames[msg_network] || msg_network;
+    const dlv_error = dlv_status === 'D' ? 'OK' : 'Eroare necunoscută';
 
-    console.log(`📨 [4PAY DSN] SMS ${msgID} către ${msg_dst} (${networkName}): ${statusName} - ${dlv_error}`);
+    console.log(`📨 [4PAY DSN] SMS ${msgID} (${networkName}): ${statusName}`);
 
     // Trimite notificare Slack
     const slackService = require('../services/slack.service');
@@ -191,42 +201,29 @@ async function handleDeliveryStatus(req, res) {
       if (dlv_status === 'D') {
         // SMS livrat cu succes
         slackMessage = `✅ *SMS livrat cu succes*\n` +
-          `Telefon: *${msg_dst}*\n` +
           `Rețea: *${networkName}*\n` +
-          `msgID: ${msgID}\n` +
-          `Status: ${dlv_error}`;
+          `msgID: ${msgID}`;
       } else if (dlv_status === 'F' || dlv_status === 'E') {
         // SMS eșuat
         slackMessage = `❌ *SMS eșuat*\n` +
-          `Telefon: *${msg_dst}*\n` +
           `Rețea: *${networkName}*\n` +
-          `msgID: ${msgID}\n` +
-          `Eroare: ${dlv_error}`;
+          `msgID: ${msgID}`;
       } else {
         // Alte statusuri (în tranzit, buffer)
         slackMessage = `📨 *SMS ${statusName}*\n` +
-          `Telefon: *${msg_dst}*\n` +
           `Rețea: *${networkName}*\n` +
-          `msgID: ${msgID}\n` +
-          `Status: ${dlv_error}`;
+          `msgID: ${msgID}`;
       }
 
-      await slackService.sendPartnerNotification({
-        webhookUrl: SLACK_WEBHOOK,
-        partnerName: 'IFN-SMS (DSN)',
-        status: dlv_status === 'D' ? 'success' : 'error',
-        leadData: {
-          phone: msg_dst,
-          name: 'DSN Notification'
-        },
-        result: {
-          success: dlv_status === 'D',
-          message: slackMessage,
-          msgId: msgID,
-          network: networkName
-        },
-        leadNumber: 1
+      // Trimite direct la Slack (nu folosim sendPartnerNotification pentru DSN)
+      const fetch = require('node-fetch');
+      await fetch(SLACK_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: slackMessage })
       });
+
+      console.log('📨 Notificare DSN trimisă la Slack');
     }
 
     // Răspuns OK către 4Pay (obligatoriu!)
