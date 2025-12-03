@@ -61,23 +61,25 @@ function normalizePhoneNumber(phone) {
  * Template-uri predefinite pentru mesaje SMS
  */
 const SMS_TEMPLATES = {
-  // Lead nou primit
-  LEAD_RECEIVED: (name) =>
-    `Bună ${name}! Cererea ta de credit a fost primită. Vei fi contactat în curând de un agent Fidem.`,
+    // Lead nou primit
+    LEAD_RECEIVED: ({ name }) =>
+      `Bună ${name}! Cererea ta de credit a fost primită. Vei fi contactat în curând de un agent Fidem.`,
 
-  // Aprobare credit
-  CREDIT_APPROVED: (name, amount) =>
-    `Felicitări ${name}! Ai fost aprobat pentru un credit de ${amount} RON. Te vom contacta pentru finalizare.`,
+    // Aprobare credit
+    CREDIT_APPROVED: ({ name, amount }) =>
+      `Felicitări ${name}! Ai fost aprobat pentru un credit de ${amount} RON. Te vom contacta pentru finalizare.`,
 
-  // Respingere credit
-  CREDIT_REJECTED: (name) =>
-    `Bună ${name}. Din păcate, cererea ta de credit nu a fost aprobată momentan. Te vom contacta cu detalii.`,
- // Link Credilink + Ocean pentru formulare
-CREDILINK: ({ CREDILINK_URL, OCEAN }) =>
-    `Buna ziua,\nIn urma convorbirii telefonice, va transmitem link-urile:\nCredilink: ${CREDILINK_URL}\nOcean Credit: ${OCEAN}`,
-  // Mesaj generic
-  GENERIC: (message) => message
-};
+    // Respingere credit
+    CREDIT_REJECTED: ({ name }) =>
+      `Bună ${name}. Din păcate, cererea ta de credit nu a fost aprobată momentan. Te vom contacta cu detalii.`,
+
+    // Link Credilink + Ocean pentru formulare
+    CREDILINK: ({ CREDILINK_URL, OCEAN }) =>
+      `Buna ziua,\nIn urma convorbirii telefonice, va transmitem link-urile:\nCredilink: ${CREDILINK_URL}\nOcean Credit: ${OCEAN}`,
+
+    // Mesaj generic
+    GENERIC: ({ message }) => message
+  };
 
 /**
  * Trimite un SMS prin 4Pay API
@@ -258,7 +260,7 @@ async function sendTemplatedSMS(phone, templateName, templateData = {}, external
     throw new Error(`Template necunoscut: ${templateName}`);
   }
 
-  const message = template(...Object.values(templateData));
+  const message = template(templateData);
 
   return sendSMS({
     phone,
