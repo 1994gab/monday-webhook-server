@@ -72,10 +72,9 @@ const SMS_TEMPLATES = {
   // Respingere credit
   CREDIT_REJECTED: (name) =>
     `Bună ${name}. Din păcate, cererea ta de credit nu a fost aprobată momentan. Te vom contacta cu detalii.`,
-
-  // Link Credilink pentru formulare
-  CREDILINK: (link) =>
-    `Buna ziua,\nIn urma convorbirii telefonice, va transmitem link-ul Credilink pe care este necesar sa il accesati:\n${link}\nVa multumim!`,
+ // Link Credilink + Ocean pentru formulare
+    CREDILINK: ({ CREDILINK_URL, OCEAN }) =>
+      `Buna ziua,\nIn urma convorbirii telefonice, va transmitem link-ul Credilink:\n${CREDILINK_URL}\nSi Ocean Credit: ${OCEAN}`,
 
   // Mesaj generic
   GENERIC: (message) => message

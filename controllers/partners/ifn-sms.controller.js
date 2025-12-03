@@ -15,6 +15,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_IFN_SMS;
 
 // Link Credilink (poate fi mutat în .env dacă se schimbă des)
 const CREDILINK_URL = 'https://bit.ly/3WVKh8c';
+const OCEAN = 'https://bit.ly/4pRKm9r';
 
 // Mapping în memorie: msgID → {name, phone}
 // Pentru a putea trimite notificări complete când primim webhook DSN
@@ -116,7 +117,7 @@ async function processIfnSmsFromQueue(queueItem, currentNumber, totalCount) {
     const result = await sendTemplatedSMS(
       phone,
       'CREDILINK',
-      { link: CREDILINK_URL },
+      { CREDILINK_URL: CREDILINK_URL,  OCEAN: OCEAN },
       `monday-${itemId}`  // externalMessageId pentru tracking
     );
 
