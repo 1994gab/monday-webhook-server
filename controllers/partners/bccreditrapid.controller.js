@@ -71,17 +71,23 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
     }
 
     // Extrage date
-    const name = item.name;
+    const fullName = item.name;
     const email = extractColumnValue(item, boardConfig.columns.email);
     const phone = extractColumnValue(item, boardConfig.columns.phone);
     const employer = extractColumnValue(item, boardConfig.columns.employer);
     const income = extractColumnValue(item, boardConfig.columns.income);
     const amount = extractColumnValue(item, boardConfig.columns.amount);
 
+    // Split nume in firstName si lastName
+    const nameParts = fullName?.trim().split(' ') || [];
+    const lastName = nameParts.pop() || '';  // Ultimul cuvant = nume familie
+    const firstName = nameParts.join(' ') || '';  // Restul = prenume
+
     // Validare date obligatorii
-    if (!name || !email || !phone || !employer || !income || !amount) {
+    if (!firstName || !lastName || !email || !phone || !employer || !income || !amount) {
       console.log(`   ❌ Date incomplete - SKIP`);
-      console.log(`   Nume: ${name || 'LIPSĂ'}`);
+      console.log(`   Prenume: ${firstName || 'LIPSĂ'}`);
+      console.log(`   Nume: ${lastName || 'LIPSĂ'}`);
       console.log(`   Email: ${email || 'LIPSĂ'}`);
       console.log(`   Telefon: ${phone || 'LIPSĂ'}`);
       console.log(`   Angajator: ${employer || 'LIPSĂ'}`);
@@ -94,7 +100,8 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
         partnerName: 'BC Credit Rapid',
         status: 'invalid_data',
         leadData: {
-          name: name || 'LIPSĂ',
+          firstName: firstName || 'LIPSĂ',
+          lastName: lastName || 'LIPSĂ',
           email: email,
           phone: phone,
           employer: employer,
@@ -103,7 +110,7 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
           boardName: boardConfig.boardName
         },
         result: {
-          message: 'Date incomplete - verifică toate câmpurile obligatorii (nume, email, telefon, angajator, salariu, sumă dorită)'
+          message: 'Date incomplete - verifică toate câmpurile obligatorii'
         },
         leadNumber: currentNumber
       });
@@ -111,7 +118,8 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
       return;
     }
 
-    console.log(`   Nume: ${name}`);
+    console.log(`   Prenume: ${firstName}`);
+    console.log(`   Nume: ${lastName}`);
     console.log(`   Email: ${email}`);
     console.log(`   Telefon: ${phone}`);
     console.log(`   Angajator: ${employer}`);
@@ -120,7 +128,8 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
 
     // Trimite la BC Credit Rapid
     const result = await sendLead({
-      name,
+      firstName,
+      lastName,
       email,
       phone,
       employer,
@@ -146,7 +155,8 @@ async function processBCCreditRapidFromQueue(queueItem, currentNumber, totalCoun
       partnerName: 'BC Credit Rapid',
       status: slackStatus,
       leadData: {
-        name,
+        firstName,
+        lastName,
         email,
         phone,
         employer,

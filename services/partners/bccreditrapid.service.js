@@ -83,7 +83,8 @@ function validateAmount(amount) {
 /**
  * Trimite un lead la BC Credit Rapid
  * @param {Object} leadData - Date lead
- * @param {string} leadData.name - Nume complet
+ * @param {string} leadData.firstName - Prenume
+ * @param {string} leadData.lastName - Nume familie
  * @param {string} leadData.email - Email valid
  * @param {string} leadData.phone - Telefon (va fi normalizat la 07XXXXXXXX)
  * @param {string} leadData.employer - Angajator
@@ -93,8 +94,8 @@ function validateAmount(amount) {
  */
 async function sendLead(leadData) {
   // Validare input
-  if (!leadData.name || !leadData.email || !leadData.phone || !leadData.employer) {
-    throw new Error('Numele, email, telefon și angajator sunt obligatorii');
+  if (!leadData.firstName || !leadData.lastName || !leadData.email || !leadData.phone || !leadData.employer) {
+    throw new Error('Prenume, nume, email, telefon și angajator sunt obligatorii');
   }
 
   // Convertește numărul la format +40XXXXXXXXX
@@ -127,7 +128,8 @@ async function sendLead(leadData) {
     items: [
       {
         website_code: BCCREDITRAPID_CONFIG.WEBSITE_CODE,
-        name: leadData.name,
+        first_name: leadData.firstName,
+        last_name: leadData.lastName,
         email: leadData.email,
         phone: normalizedPhone,
         employer: leadData.employer,
@@ -137,14 +139,13 @@ async function sendLead(leadData) {
         agree_gdpr: true,
         agree_policy: true,
         agree_anaf: true
-        // source: opțional, omis deocamdată
       }
     ]
   };
 
   try {
     console.log(`\n📤 [BC CREDIT RAPID] Trimit lead:`);
-    console.log(`   Nume: ${leadData.name}`);
+    console.log(`   Nume: ${leadData.firstName} ${leadData.lastName}`);
     console.log(`   Email: ${leadData.email}`);
     console.log(`   Telefon: ${leadData.phone} → ${normalizedPhone}`);
     console.log(`   Angajator: ${leadData.employer}`);
